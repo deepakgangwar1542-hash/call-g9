@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      name="description"
+      content="Call Severity Triage: a transparent dispatcher decision-support project built on UK road collision data."
+    />
+    <meta property="og:title" content="Call Severity Triage" />
+    <meta
+      property="og:description"
+      content="Five call-time facts in. A risk flag out."
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
+    <title>Call Severity Triage | Dispatcher decision support</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='10' fill='%23e11d2e'/%3E%3Ccircle cx='16' cy='16' r='4' fill='white'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Space+Grotesk:wght@700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      document.documentElement.classList.add("js");
+    </script>
+  </head>
+  <body>
+    <canvas id="bg3d" aria-hidden="true"></canvas>
+    <div class="scene-scrim" aria-hidden="true"></div>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="nav" id="top">
+      <a class="brand" href="#top"
+        ><i class="signal"></i><span>CALL / TRIAGE</span></a
+      ><button
+        class="menu"
+        aria-label="Open navigation"
+        aria-expanded="false"
+        aria-controls="navlinks"
+      >
+        <span></span><span></span>
+      </button>
+      <nav id="navlinks">
+        <a href="#problem">Problem</a><a href="#how">How it works</a
+        ><a href="#demo">Demo</a><a href="#results">Results</a
+        ><a href="#stack">Stack</a><a href="#roadmap">Roadmap</a
+        ><a class="button nav-cta" href="../">Open the app <b>↗</b></a
+        ><button
+          class="theme"
+          aria-label="Toggle color theme"
+          title="Toggle color theme"
+        >
+          ◐
+        </button>
+      </nav>
+    </header>
+    <main id="main">
+      <section class="hero shell">
+        <div class="hero-copy reveal">
+          <p class="eyebrow">
+            <i class="signal"></i> Dispatcher decision support
+          </p>
+          <h1>Which call needs the <em>bigger response?</em></h1>
+          <p class="lede">
+            Five call-time facts in. A risk flag out. In about a second.
+          </p>
+          <div class="actions">
+            <a class="button" href="../">Open the live app <b>↗</b></a
+            ><a class="button ghost" href="#how">See how it works <b>↓</b></a>
+          </div>
+        </div>
+        <div class="mock reveal" aria-label="Illustrative call verdict card">
+          <div class="mock-bar">
+            <span>CALL / 7F-1028</span><i class="live">LIVE</i>
+          </div>
+          <div class="mock-fields">
+            <p><span>ROAD</span><b>Single carriageway</b></p>
+            <p><span>LIMIT</span><b>60 MPH</b></p>
+            <p><span>WEATHER</span><b>Fine, no high winds</b></p>
+            <p><span>LIGHT</span><b>Daylight</b></p>
+            <p><span>JUNCTION</span><b>Not at junction</b></p>
+          </div>
+          <div class="scanner"></div>
+          <div class="mock-result">
+            <div class="ring">
+              <strong class="mock-score">38</strong><small>%</small>
+            </div>
+            <div>
+              <span class="verdict-tag high">HIGH RISK</span>
+              <p>Enhanced response<br />recommended</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="stat-strip shell" aria-label="Project facts">
+        <div>
+          <strong data-count="104258">104,258</strong
+          ><span>collisions analysed</span>
+        </div>
+        <div><strong>~1 s</strong><span>per flag</span></div>
+        <div><strong>5</strong><span>call-time inputs</span></div>
+      </section>
+      <section id="problem" class="section shell two-col">
+        <div class="reveal">
+          <p class="eyebrow">The problem</p>
+          <h2>Response capacity is fixed. Calls are not.</h2>
+          <p>
+            Each shift has a limited number of enhanced responses. During an
+            incoming call, the dispatcher often has only a few facts to work
+            with.
+          </p>
+        </div>
+        <div class="capacity reveal">
+          <div class="capacity-top">
+            <span>ENHANCED RESPONSE / SHIFT</span><b>K SLOTS</b>
+          </div>
+          <div
+            class="slots"
+            aria-label="A fixed number of enhanced response slots"
+          >
+            <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i
+            ><i></i><i></i><i></i>
+          </div>
+          <p>Rank calls consistently, then keep human judgement in the loop.</p>
+        </div>
+      </section>
+      <section id="how" class="section shell">
+        <div class="heading reveal">
+          <p class="eyebrow">How it works</p>
+          <h2>Short input. Clear hand-off.</h2>
+        </div>
+        <div class="timeline" aria-label="Five step process">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 1000 4"
+            preserveAspectRatio="none"
+          >
+            <path d="M0 2H1000" />
+          </svg>
+          <article class="reveal">
+            <b>01</b>
+            <h3>Call comes in</h3>
+            <p>The dispatcher records what is known.</p>
+          </article>
+          <article class="reveal">
+            <b>02</b>
+            <h3>Five conditions</h3>
+            <p>Road, limit, weather, light, junction.</p>
+          </article>
+          <article class="reveal">
+            <b>03</b>
+            <h3>Model scores</h3>
+            <p>Features available at call time only.</p>
+          </article>
+          <article class="reveal">
+            <b>04</b>
+            <h3>Flag + confidence</h3>
+            <p>Decision support, not a decision maker.</p>
+          </article>
+          <article class="reveal">
+            <b>05</b>
+            <h3>Logged + reviewed</h3>
+            <p>Supervisors measure shift outcomes.</p>
+          </article>
+        </div>
+      </section>
+      <section id="demo" class="section shell demo-wrap">
+        <div class="heading reveal">
+          <p class="eyebrow">Live demo</p>
+          <h2>Try the intake flow.</h2>
+          <p class="notice">
+            DEMO MODE · Uses a simplified speed/light lookup, not the trained
+            model.
+          </p>
+        </div>
+        <form class="demo reveal" novalidate>
+          <div class="form-grid">
+            <label
+              >Road type<select name="road">
+                <option value="">Select road type</option>
+                <option>Roundabout</option>
+                <option>One way street</option>
+                <option>Dual carriageway</option>
+                <option>Single carriageway</option>
+                <option>Slip road</option>
+                <option>Unknown</option>
+              </select></label
+            ><label
+              >Speed limit<select name="speed">
+                <option value="">Select speed limit</option>
+                <option value="20">20 mph</option>
+                <option value="30">30 mph</option>
+                <option value="40">40 mph</option>
+                <option value="50">50 mph</option>
+                <option value="60">60 mph</option>
+                <option value="70">70 mph</option>
+              </select></label
+            ><label
+              >Weather<select name="weather">
+                <option value="">Select weather</option>
+                <option>Fine, no high winds</option>
+                <option>Raining, no high winds</option>
+                <option>Snowing, no high winds</option>
+                <option>Fog or mist</option>
+                <option>Unknown</option>
+              </select></label
+            ><label
+              >Light condition<select name="light">
+                <option value="">Select light condition</option>
+                <option>Daylight</option>
+                <option>Darkness - lights lit</option>
+                <option>Darkness - lights unlit</option>
+                <option>Darkness - no lighting</option>
+                <option>Unknown</option>
+              </select></label
+            ><label
+              >Junction detail<select name="junction">
+                <option value="">Select junction detail</option>
+                <option>Not at junction / roundabout / slip road</option>
+                <option>T or staggered junction</option>
+                <option>Crossroads</option>
+                <option>Private drive or entrance</option>
+                <option>Other junction</option>
+                <option>Unknown</option>
+              </select></label
+            >
+          </div>
+          <button class="button" type="submit">Assess call <b>→</b></button>
+        </form>
+        <output class="demo-result" aria-live="polite"></output>
+      </section>
+      <section id="results" class="section shell results">
+        <div class="heading reveal">
+          <p class="eyebrow">Results, honestly</p>
+          <h2>Useful signal. Not a settled answer.</h2>
+          <p>
+            Early final-test result on 14,746 held-out collisions. The model's
+            interval overlaps the baseline; stricter validation is in progress.
+          </p>
+        </div>
+        <figure class="chart reveal">
+          <svg
+            viewBox="0 0 680 240"
+            role="img"
+            aria-label="Precision at 300: model 0.38, baseline 0.33, Level 0 0"
+          >
+            <line x1="75" y1="205" x2="650" y2="205" />
+            <text x="0" y="205">0.00</text>
+            <text x="0" y="110">0.20</text>
+            <text x="0" y="18">0.40</text>
+            <rect class="bar model" x="130" y="205" width="100" height="0" />
+            <rect class="bar base" x="330" y="205" width="100" height="0" />
+            <rect class="bar zero" x="530" y="205" width="100" height="0" />
+            <text x="154" y="229">Model</text>
+            <text x="342" y="229">Baseline</text>
+            <text x="554" y="229">Level 0</text>
+            <text class="bar-label model" x="163" y="190">0.38</text>
+            <text class="bar-label base" x="363" y="190">0.33</text>
+          </svg>
+          <figcaption>
+            Precision@300 · Model 95% CI: 0.33–0.44 · Level 1 speed-limit
+            baseline: 0.33
+          </figcaption>
+        </figure>
+      </section>
+      <section class="section shell">
+        <div class="heading reveal">
+          <p class="eyebrow">Built-in safeguards</p>
+          <h2>Designed for accountable use.</h2>
+        </div>
+        <div class="cards">
+          <article class="reveal">
+            <b>01</b>
+            <h3>Named validation</h3>
+            <p>Errors name the missing field.</p>
+          </article>
+          <article class="reveal">
+            <b>02</b>
+            <h3>Level 0 fallback</h3>
+            <p>Never a blank screen.</p>
+          </article>
+          <article class="reveal">
+            <b>03</b>
+            <h3>Dispatcher override</h3>
+            <p>Human judgement remains decisive.</p>
+          </article>
+          <article class="reveal">
+            <b>04</b>
+            <h3>Versioned logging</h3>
+            <p>Each call records the model version.</p>
+          </article>
+          <article class="reveal">
+            <b>05</b>
+            <h3>Zero-dispatch guard</h3>
+            <p>No misleading shift metric.</p>
+          </article>
+          <article class="reveal">
+            <b>06</b>
+            <h3>Leakage-safe inputs</h3>
+            <p>No vehicle or casualty counts.</p>
+          </article>
+        </div>
+      </section>
+      <section id="stack" class="section shell stack">
+        <p class="eyebrow">Tech stack</p>
+        <h2>Small, inspectable, purpose-built.</h2>
+        <div class="pills">
+          <span>Python <small>application logic</small></span
+          ><span>scikit-learn <small>risk model</small></span
+          ><span>Streamlit <small>dispatcher interface</small></span
+          ><span>SQLite <small>call log</small></span
+          ><span>pandas <small>data handling</small></span
+          ><span>pytest <small>regression checks</small></span>
+        </div>
+      </section>
+      <section id="roadmap" class="section shell">
+        <div class="heading reveal">
+          <p class="eyebrow">Roadmap</p>
+          <h2>Build in public, verify as we go.</h2>
+        </div>
+        <ol class="roadmap">
+          <li class="done"><b>Sprint I</b><span>Done</span></li>
+          <li class="active"><b>Sprint II</b><span>In progress</span></li>
+          <li><b>Sprint III</b><span>Planned</span></li>
+          <li><b>Testing</b><span>17 Nov</span></li>
+          <li><b>Deployment</b><span>30 Nov</span></li>
+        </ol>
+      </section>
+    </main>
+    <footer class="shell">
+      <div>
+        <a class="brand" href="#top"
+          ><i class="signal"></i><span>CALL / TRIAGE</span></a
+        >
+        <p>
+          Deepak Gangwar · 22515500027 · Section NE<br />Supervised by Palash
+          Sir · GLA University
+        </p>
+      </div>
+      <div>
+        <a href="https://github.com/deepakgangwar1542-hash/call"
+          >GitHub repository ↗</a
+        >
+        <p>
+          Contains public sector information licensed under the Open Government
+          Licence v3.0, UK Department for Transport.
+        </p>
+        <strong>Decision support only; not for live emergency use.</strong>
+      </div>
+    </footer>
+    <script
+      defer
+      src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+    ></script>
+    <script src="main.js"></script>
+  </body>
+</html>

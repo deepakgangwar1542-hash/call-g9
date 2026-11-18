@@ -1,0 +1,7 @@
+{
+  "name": "manus-ai",
+  "version": "0.1.0",
+  "description": "Run and manage Manus AI agent tasks from ZCode: launch autonomous agents, answer their questions mid-run, stop them, and collect results through the official Manus API (api.manus.ai).",
+  "author": { "name": "Deepa" },
+  "mcpServers": "./.mcp.json"
+}

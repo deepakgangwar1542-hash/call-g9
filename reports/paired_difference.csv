@@ -1,0 +1,5 @@
+model,baseline,metric,bootstrap_n,mean_difference,ci_low,ci_high,fraction_model_beats_baseline,ci_excludes_zero,data_variant
+RandomForest,Level1_speed_limit_rate,P@300,1000,0.046950000000000006,-0.010000000000000009,0.10333333333333333,0.943,False,pre_sep17
+RandomForest,Level1_5_smoothed_interaction_rate,P@300,1000,0.04323333333333333,-0.010000000000000009,0.09666666666666668,0.952,False,pre_sep17
+RandomForest,Level1_speed_limit_rate,P@300,1000,0.019510000000000003,-0.053333333333333344,0.09333333333333332,0.675,False,all
+RandomForest,Level1_5_smoothed_interaction_rate,P@300,1000,0.012116666666666668,-0.04666666666666669,0.07,0.637,False,all
