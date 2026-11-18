@@ -5,9 +5,12 @@ import time
 import streamlit as st
 
 from common import CHOICES, OPTIONAL_LABELS, POLICE_FORCE, VALID_SPEED
-from predict import ValidationError, predict_call, validate
+from intake import extract_fields, redact
+from predict import ValidationError, predict_call, validate, what_if
 import db
+import report
 import theme
+import views
 
 
 st.set_page_config(page_title="Call Severity Triage", page_icon="🚑", layout="wide")
@@ -20,7 +23,17 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-dispatch_tab, review_tab = st.tabs(["Dispatch desk", "Shift review"])
+dispatch_tab, control_tab, capacity_tab, review_tab, health_tab = st.tabs(
+    ["Dispatch desk", "Control room", "Capacity planner", "Shift review", "Model health"])
+
+
+def apply_intake() -> None:
+    """Button callback: redact the description, then pre-fill the form fields the text clearly supports."""
+    text = redact(st.session_state.get("intake_text", ""))
+    found = extract_fields(text)
+    for key, (value, _) in found.items():
+        st.session_state[key if key.startswith("opt_") else f"f_{key}"] = value
+    st.session_state["intake_found"] = (text, found)
 
 
 with dispatch_tab:
@@ -32,12 +45,23 @@ with dispatch_tab:
     with intake_col:
         st.markdown(theme.section_title("Call conditions", "activity"), unsafe_allow_html=True)
         st.caption("All five fields are required. Choose the closest available category.")
+        with st.expander("Describe the call in words (optional)"):
+            st.text_area("Call description", key="intake_text", height=90, label_visibility="collapsed",
+                         placeholder="e.g. Car off the road on the A38 near a village, 60mph, raining, no street lights, icy surface")
+            st.button("Suggest form fields", on_click=apply_intake)
+            if "intake_found" in st.session_state:
+                text, found = st.session_state["intake_found"]
+                st.caption(f"Stored text (personal details removed): {text or 'nothing entered'}")
+                if found:
+                    st.caption("Filled in, please check each one: " + "; ".join(f"{key.removeprefix('opt_').replace('_', ' ')} from \"{ev}\"" for key, (_, ev) in found.items()))
+                else:
+                    st.caption("No fields could be read from that description. Choose them below.")
         with st.form("call", clear_on_submit=False):
-            road = st.selectbox("Road type", [""] + CHOICES["road_type"], format_func=lambda value: value or "Select a road type")
-            speed = st.selectbox("Speed limit", [""] + [str(value) for value in VALID_SPEED], format_func=lambda value: f"{value} mph" if value else "Select a speed limit")
-            weather = st.selectbox("Weather", [""] + CHOICES["weather"], format_func=lambda value: value or "Select weather conditions")
-            light = st.selectbox("Light condition", [""] + CHOICES["light_condition"], format_func=lambda value: value or "Select a light condition")
-            junction = st.selectbox("Junction detail", [""] + CHOICES["junction_detail"], format_func=lambda value: value or "Select junction detail")
+            road = st.selectbox("Road type", [""] + CHOICES["road_type"], format_func=lambda value: value or "Select a road type", key="f_road")
+            speed = st.selectbox("Speed limit", [""] + [str(value) for value in VALID_SPEED], format_func=lambda value: f"{value} mph" if value else "Select a speed limit", key="f_speed")
+            weather = st.selectbox("Weather", [""] + CHOICES["weather"], format_func=lambda value: value or "Select weather conditions", key="f_weather")
+            light = st.selectbox("Light condition", [""] + CHOICES["light_condition"], format_func=lambda value: value or "Select a light condition", key="f_light")
+            junction = st.selectbox("Junction detail", [""] + CHOICES["junction_detail"], format_func=lambda value: value or "Select junction detail", key="f_junction")
             with st.expander("More detail (optional, improves accuracy)"):
                 st.caption("Call time is captured automatically. Leave a field blank if it is not known.")
                 optional = {}
@@ -64,6 +88,7 @@ with dispatch_tab:
                 elapsed_ms = (time.perf_counter() - started) * 1000
                 call_id = db.log_call(validate(call), prediction)
                 st.session_state["last"] = (call_id, prediction, elapsed_ms)
+                st.session_state["last_call"] = call
                 st.session_state.pop("err", None)
                 st.session_state.pop("saved", None)
             except ValidationError as error:
@@ -77,7 +102,29 @@ with dispatch_tab:
         if "last" in st.session_state:
             call_id, prediction, elapsed_ms = st.session_state["last"]
             st.markdown(theme.verdict_card(prediction, elapsed_ms, call_id), unsafe_allow_html=True)
+            st.markdown(theme.calibration_card(prediction.get("calibration"), views.BASE_RATE), unsafe_allow_html=True)
             st.markdown(theme.reasons_card(prediction.get("reasons", [])), unsafe_allow_html=True)
+            if prediction.get("calibration") and "last_call" in st.session_state:
+                with st.expander("What if the conditions change?"):
+                    st.caption("Re-score this call with different conditions. Nothing is logged.")
+                    changes = {}
+                    for field, label in [("light_condition", "Light condition"), ("weather", "Weather"), ("junction_detail", "Junction detail")]:
+                        picked = st.selectbox(label, ["Unchanged"] + CHOICES[field], key=f"wi_{field}")
+                        if picked != "Unchanged":
+                            changes[field] = picked
+                    speed_pick = st.selectbox("Speed limit", ["Unchanged"] + [str(v) for v in VALID_SPEED], key="wi_speed")
+                    if speed_pick != "Unchanged":
+                        changes["speed_limit"] = speed_pick
+                    if changes:
+                        try:
+                            outcome = what_if(st.session_state["last_call"], changes)
+                        except ValidationError as error:
+                            outcome = {}
+                            st.warning(str(error))
+                        if outcome:
+                            a, b = st.columns(2)
+                            a.metric("Similar calls serious/fatal, now", f"{outcome['before']:.0%}")
+                            b.metric("With the change", f"{outcome['after']:.0%}", f"{outcome['delta_points']:+.1f} points", delta_color="inverse")
             with st.container(border=True):
                 st.markdown(theme.section_title("Dispatcher decision", "siren"), unsafe_allow_html=True)
                 st.caption("Record any override and whether enhanced response was sent.")
@@ -204,7 +251,9 @@ with review_tab:
     if calls.empty:
         st.info("The shift log is empty. It will be available for export after a call is assessed.")
     else:
-        st.download_button("Download shift log (CSV)", calls.to_csv(index=False), "shift_log.csv", mime="text/csv")
+        csv_col, pdf_col, _ = st.columns([1, 1, 2])
+        csv_col.download_button("Download shift log (CSV)", calls.to_csv(index=False), "shift_log.csv", mime="text/csv")
+        pdf_col.download_button("Download shift report (PDF)", report.build_pdf(calls, result), "shift_report.pdf", mime="application/pdf")
         display_calls = calls.sort_values(["timestamp", "call_id"], ascending=False).copy()
         estimate_rows = display_calls["is_estimate"].fillna(0).astype(bool)
         display_calls.loc[estimate_rows, "predicted_risk"] = "Baseline estimate"
@@ -216,3 +265,12 @@ with review_tab:
         })
         columns = [name for name in ["Call ID", "Logged", "Result", "Confidence", "Limit (mph)", "Enhanced response", "Actual outcome"] if name in display_calls.columns]
         st.dataframe(display_calls[columns], width="stretch", hide_index=True)
+
+with control_tab:
+    views.control_room()
+
+with capacity_tab:
+    views.capacity_planner()
+
+with health_tab:
+    views.model_health(db.all_calls())

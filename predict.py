@@ -137,6 +137,48 @@ def explain(clean: dict, top_n: int = 4, min_effect: float = 0.02) -> list[dict]
         return []
 
 
+def _load_cal():
+    if "cal" not in _cache:
+        _cache["cal"] = joblib.load(CALIBRATOR_PATH)
+    return _cache["cal"]
+
+
+def calibrate(raw: float) -> dict | None:
+    """Map a raw v2 score to a calibrated probability plus the observed range among similar historic calls.
+
+    `ci_low`/`ci_high` are the Wilson 95% interval of the serious/fatal rate actually seen in the same score bin
+    of out-of-time 2022-2025 predictions. Returns None when no calibrator is available."""
+    try:
+        cal = _load_cal()
+        p = float(cal["isotonic"].predict([raw])[0])
+        table = cal["intervals"]
+        row = table[(table.score_low <= p) & (p <= table.score_high)].iloc[-1]
+        return dict(calibrated=round(p, 4), ci_low=round(float(row.ci_low), 4), ci_high=round(float(row.ci_high), 4),
+                    n_similar=int(row.n))
+    except Exception:
+        return None
+
+
+def raw_v2_score(clean: dict) -> float:
+    bundle, _ = _load_v2()
+    return float(bundle["model"].predict_proba(_v2_row(clean, bundle))[0, 1])
+
+
+def what_if(call: dict, changes: dict) -> dict:
+    """Re-score a call with some fields changed; returns before/after calibrated risk and the shift in points.
+
+    Raises ValidationError for invalid input. Needs the v2 model; returns {} if it is unavailable."""
+    base, changed = validate(call), validate({**call, **changes})
+    try:
+        before, after = raw_v2_score(base), raw_v2_score(changed)
+    except Exception:
+        return {}
+    cb, ca = calibrate(before), calibrate(after)
+    pb = cb["calibrated"] if cb else before
+    pa = ca["calibrated"] if ca else after
+    return dict(before=pb, after=pa, delta_points=round((pa - pb) * 100, 1), raw_before=before, raw_after=after)
+
+
 def _score(p: float, meta: dict, **extra) -> dict:
     high = p >= meta["threshold"]
     return dict(risk_flag="High risk" if high else "Low risk",
@@ -150,7 +192,7 @@ def predict_call(call: dict) -> dict:
     try:
         bundle, meta = _load_v2()
         p = float(bundle["model"].predict_proba(_v2_row(clean, bundle))[0, 1])
-        return _score(p, meta, model_tier=bundle["tier"], reasons=explain(clean))
+        return _score(p, meta, model_tier=bundle["tier"], reasons=explain(clean), calibration=calibrate(p))
     except Exception:
         pass
     try:                                         # v2 missing / broken -> v1 five-feature model

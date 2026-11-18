@@ -68,6 +68,9 @@ MULTI_RAW = ROOT / "data/raw/dft-road-casualty-statistics-collision-last-5-years
 MULTI_CLEAN = ROOT / "data/processed/clean_multi.csv"
 V2_MODEL_PATH = ROOT / "models/model_v2.joblib"
 V2_META_PATH = ROOT / "models/model_v2_meta.json"
+CALIBRATOR_PATH = ROOT / "models/calibrator_v2.joblib"
+REPLAY_PATH = ROOT / "data/processed/replay_2025.csv"
+HEX_PATH = ROOT / "data/processed/hex_risk.csv"
 
 FLAG_RATE = 0.02         # share of calls escalated; same operating point as K=300 on the 2023 test set (~2%)
 

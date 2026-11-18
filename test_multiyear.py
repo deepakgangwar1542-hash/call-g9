@@ -12,7 +12,7 @@ def raw_row(**overrides):
     row = dict(collision_year=2024, collision_severity=2, road_type=6, speed_limit=30, weather_conditions=1,
                light_conditions=1, junction_detail=0, date="15/03/2024", time="08:30", day_of_week=6,
                urban_or_rural_area=1, first_road_class=3, junction_control=9, pedestrian_crossing=99,
-               road_surface_conditions=1, carriageway_hazards=-1, police_force=1)
+               road_surface_conditions=1, carriageway_hazards=-1, police_force=1, latitude=51.5074, longitude=-0.1278)
     row.update(overrides)
     return row
 

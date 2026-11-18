@@ -156,6 +156,23 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="0"]:focus
 .why-up .why-bar i { background:var(--red); }
 .why-down .why-bar i { background:var(--green); }
 
+/* Calibrated probability and what-if */
+.cal { margin:.75rem 0 1rem; padding:1rem 1.1rem; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
+.cal-big { display:flex; align-items:baseline; gap:.55rem; margin:.3rem 0 .15rem; }
+.cal-big b { color:var(--text); font-size:1.9rem; line-height:1.1; font-weight:800; letter-spacing:-.02em; }
+.cal-big span { color:var(--muted); font-size:.82rem; }
+.cal-track { position:relative; height:8px; margin:.7rem 0 .45rem; border-radius:99px; background:var(--surface-soft); }
+.cal-range { position:absolute; top:0; bottom:0; border-radius:99px; background:var(--amber); opacity:.85; }
+.cal-dot { position:absolute; top:-3px; width:14px; height:14px; margin-left:-7px; border-radius:50%; background:var(--text); border:2px solid var(--canvas); }
+.cal-base { position:absolute; top:-5px; width:2px; height:18px; background:var(--subtle); }
+.cal-scale { display:flex; justify-content:space-between; color:var(--subtle); font-size:.7rem; }
+.cal-note { margin:.55rem 0 0; color:var(--muted); font-size:.76rem; line-height:1.5; }
+.why-lead { margin:.1rem 0 .6rem; color:#ced8e4; font-size:.86rem; line-height:1.5; }
+[data-testid="stMetric"] { padding:.7rem .9rem; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+[data-testid="stMetricLabel"] p { color:var(--muted); font-size:.76rem; font-weight:650; }
+[data-testid="stExpander"] { border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
+[data-testid="stPlotlyChart"], [data-testid="stDeckGlJsonChart"] { border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
+
 /* Data and statuses */
 [data-testid="stDataFrame"] { border:1px solid var(--line); border-radius:11px; overflow:hidden; }
 [data-testid="stAlert"] { border-radius:9px; }
@@ -216,7 +233,7 @@ def hero() -> str:
         </div>
       </div>
       <div class="hero-r">
-        <span class="chip">STATS19 · 2023</span>
+        <span class="chip">STATS19 · 2021-2025</span>
         <span class="chip chip-blue">MODEL-ASSISTED</span>
       </div>
     </header>"""
@@ -283,11 +300,35 @@ def reasons_card(reasons: list) -> str:
             f'<div class="why-bar" role="img" aria-label="{verb} risk, relative strength {abs(r["effect"]) / peak * 100:.0f} percent">'
             f'<i style="width:{max(8.0, abs(r["effect"]) / peak * 100):.0f}%"></i></div></div>'
         )
+    drivers = [escape(str(r["title"]).lower() + " (" + str(r["value"]) + ")") for r in reasons if r["effect"] > 0][:2]
+    lead = f'<p class="why-lead">Mainly driven by {" and ".join(drivers)}.</p>' if drivers else ""
     return (
         f'<section class="why" aria-label="Why this score">'
         f'<div class="why-head">{_svg("cpu")} Why this score</div>'
+        f'{lead}'
         f'<p class="why-sub">Largest factors in this call, compared with an average call. Fields left blank are not counted.</p>'
         f'{"".join(rows)}</section>'
+    )
+
+
+def calibration_card(cal: dict | None, base_rate: float) -> str:
+    """Plain-English probability for similar historic calls, with the observed range and the average call as reference."""
+    if not cal:
+        return ""
+    p, lo, hi = cal["calibrated"] * 100, cal["ci_low"] * 100, cal["ci_high"] * 100
+    scale = 60.0
+    pos = lambda v: max(0.0, min(100.0, v / scale * 100))
+    return (
+        f'<section class="cal" aria-label="Probability for similar historic calls">'
+        f'<div class="why-head">{_svg("activity")} Similar historic calls</div>'
+        f'<div class="cal-big"><b>{p:.0f}%</b><span>were serious or fatal</span></div>'
+        f'<div class="cal-track" role="img" aria-label="Estimated {p:.1f} percent, observed range {lo:.1f} to {hi:.1f} percent, average call {base_rate * 100:.1f} percent">'
+        f'<div class="cal-range" style="left:{pos(lo):.1f}%;width:{max(1.0, pos(hi) - pos(lo)):.1f}%"></div>'
+        f'<div class="cal-base" style="left:{pos(base_rate * 100):.1f}%"></div>'
+        f'<div class="cal-dot" style="left:{pos(p):.1f}%"></div></div>'
+        f'<div class="cal-scale"><span>0%</span><span>30%</span><span>60%</span></div>'
+        f'<p class="cal-note">Based on {cal["n_similar"]:,} out-of-time collisions with a similar score. The dark tick marks the average call ({base_rate * 100:.0f}%). '
+        f'This describes the group, not this call: any single call is either serious or not.</p></section>'
     )
 
 

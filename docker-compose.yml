@@ -1,0 +1,9 @@
+services:
+  desk:
+    build: .
+    ports: ["8501:8501"]
+    volumes: ["./calls.db:/app/calls.db"]
+  api:
+    build: .
+    command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports: ["8000:8000"]

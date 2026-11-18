@@ -24,6 +24,9 @@ def clean(raw: pd.DataFrame) -> pd.DataFrame:
         "day_of_week": df["day_of_week"],
         "month": date.dt.month,
         "target": df["target"],
+        # Not model features: kept for the map, hex heatmap and shift replay.
+        "latitude": df["latitude"].round(5),
+        "longitude": df["longitude"].round(5),
     })
     for col, mapping in [("road_type", ROAD_TYPE), ("weather_conditions", WEATHER),
                          ("light_conditions", LIGHT), ("junction_detail", JUNCTION)]:

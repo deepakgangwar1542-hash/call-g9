@@ -1,0 +1,14 @@
+FROM python:3.12-slim
+
+# LightGBM needs the OpenMP runtime
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# Dispatch desk on 8501, API on 8000 (choose with the command, see docker-compose.yml)
+EXPOSE 8501 8000
+CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]

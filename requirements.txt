@@ -5,3 +5,9 @@ joblib
 streamlit
 matplotlib
 lightgbm
+plotly
+pydeck
+reportlab
+h3
+fastapi
+uvicorn
