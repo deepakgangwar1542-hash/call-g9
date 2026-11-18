@@ -134,6 +134,45 @@ def test_paired_bootstrap_identical_scores_includes_zero():
     assert abs(paired.iloc[0].mean_difference) < 1e-12
     assert paired.iloc[0].ci_low <= 0 <= paired.iloc[0].ci_high
 
+def test_reasons_sum_to_the_model_probability():
+    import math
+    clean = validate({**OK, "light_condition": "Darkness - no lighting", "first_road_class": "3"})
+    bundle, _ = predict._load_v2()
+    contrib = bundle["model"].predict(predict._v2_row(clean, bundle), pred_contrib=True)[0]
+    p = float(bundle["model"].predict_proba(predict._v2_row(clean, bundle))[0, 1])
+    assert abs(1 / (1 + math.exp(-contrib.sum())) - p) < 1e-6
+
+
+def test_reasons_skip_blank_fields_and_are_ranked():
+    r = predict_call(OK)
+    shown = {x["field"] for x in r["reasons"]}
+    assert 0 < len(r["reasons"]) <= 4
+    assert not shown & {"urban_or_rural_area", "first_road_class", "junction_control", "road_surface_conditions", "police_force"}
+    effects = [abs(x["effect"]) for x in r["reasons"]]
+    assert effects == sorted(effects, reverse=True)
+
+
+def test_reasons_include_optional_field_when_given():
+    clean = validate({**OK, "first_road_class": "1", "urban_or_rural_area": "2", "police_force": "1"})
+    fields = {x["field"] for x in predict.explain(clean, top_n=15, min_effect=0)}
+    assert {"first_road_class", "urban_or_rural_area", "police_force"} <= fields
+
+
+def test_no_reasons_when_v2_missing():
+    predict._cache.clear(); real = common.V2_MODEL_PATH
+    predict.V2_MODEL_PATH = real.with_name("nope.joblib")
+    try:
+        assert predict.explain(validate(OK)) == []
+    finally:
+        predict.V2_MODEL_PATH = real; predict._cache.clear()
+
+
+def test_reasons_card_renders_and_escapes():
+    assert theme.reasons_card([]) == ""
+    html = theme.reasons_card([dict(title="Road <type>", value="A&B", effect=0.3), dict(title="Lighting", value="Daylight", effect=-0.1)])
+    assert "&lt;type&gt;" in html and "A&amp;B" in html and "raises the risk" in html and "lowers the risk" in html
+
+
 if __name__ == "__main__":
     for n, f in list(globals().items()):
         if n.startswith("test_") and callable(f): f(); print("PASS", n)

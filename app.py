@@ -77,6 +77,7 @@ with dispatch_tab:
         if "last" in st.session_state:
             call_id, prediction, elapsed_ms = st.session_state["last"]
             st.markdown(theme.verdict_card(prediction, elapsed_ms, call_id), unsafe_allow_html=True)
+            st.markdown(theme.reasons_card(prediction.get("reasons", [])), unsafe_allow_html=True)
             with st.container(border=True):
                 st.markdown(theme.section_title("Dispatcher decision", "siren"), unsafe_allow_html=True)
                 st.caption("Record any override and whether enhanced response was sent.")

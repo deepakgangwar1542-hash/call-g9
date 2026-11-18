@@ -1,4 +1,6 @@
 """Accessible visual system for the Call Severity Triage Streamlit app."""
+from html import escape
+
 import streamlit as st
 
 CSS = """
@@ -138,6 +140,22 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="0"]:focus
 .pk-k { color:var(--muted); font-size:.82rem; line-height:1.5; }
 .note { margin:.3rem 0; padding:.8rem .95rem; border:1px solid #66562e; border-left:4px solid var(--amber); border-radius:9px; background:#211d14; color:#f5d994; font-size:.86rem; line-height:1.5; }
 
+/* Explanation of the score */
+.why { margin:.75rem 0 1rem; padding:1rem 1.1rem; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
+.why-head { display:flex; align-items:center; gap:.45rem; color:var(--text); font-size:.9rem; font-weight:700; }
+.why-head svg { width:16px; height:16px; color:var(--muted); }
+.why-sub { margin:.25rem 0 .75rem; color:var(--muted); font-size:.78rem; line-height:1.45; }
+.why-row { display:grid; grid-template-columns:18px minmax(0,1fr) 84px; align-items:center; gap:.6rem; padding:.42rem 0; border-top:1px solid #2a2a31; }
+.why-row svg { width:16px; height:16px; }
+.why-up svg { color:var(--red); }
+.why-down svg { color:var(--green); }
+.why-name { color:var(--text); font-size:.84rem; line-height:1.35; }
+.why-name span { display:block; color:var(--muted); font-size:.74rem; }
+.why-bar { height:6px; overflow:hidden; border-radius:99px; background:var(--surface-soft); }
+.why-bar i { display:block; height:100%; border-radius:99px; }
+.why-up .why-bar i { background:var(--red); }
+.why-down .why-bar i { background:var(--green); }
+
 /* Data and statuses */
 [data-testid="stDataFrame"] { border:1px solid var(--line); border-radius:11px; overflow:hidden; }
 [data-testid="stAlert"] { border-radius:9px; }
@@ -172,6 +190,8 @@ _ICONS = {
     "phone": '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72"/>',
     "cpu": '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v2m6-2v2M9 20v2m6-2v2M2 9h2m-2 6h2m16-6h2m-2 6h2"/>',
     "activity": '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+    "up": '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+    "down": '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
     "download": '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
     "list": '<line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/>',
 }
@@ -246,6 +266,29 @@ def verdict_card(pred: dict, ms: float, cid: str) -> str:
         <span class="meta-chip">{_svg('clock')} {ms:.0f} ms</span>
       </div>
     </section>"""
+
+
+def reasons_card(reasons: list) -> str:
+    """Top factors behind the score. Empty string when the model could not explain itself (fallback tiers)."""
+    if not reasons:
+        return ""
+    peak = max(abs(r["effect"]) for r in reasons) or 1.0
+    rows = []
+    for r in reasons:
+        raises = r["effect"] > 0
+        verb = "raises" if raises else "lowers"
+        rows.append(
+            f'<div class="why-row {"why-up" if raises else "why-down"}">{_svg("up" if raises else "down")}'
+            f'<div class="why-name">{escape(r["title"])}<span>{escape(str(r["value"]))} {verb} the risk</span></div>'
+            f'<div class="why-bar" role="img" aria-label="{verb} risk, relative strength {abs(r["effect"]) / peak * 100:.0f} percent">'
+            f'<i style="width:{max(8.0, abs(r["effect"]) / peak * 100):.0f}%"></i></div></div>'
+        )
+    return (
+        f'<section class="why" aria-label="Why this score">'
+        f'<div class="why-head">{_svg("cpu")} Why this score</div>'
+        f'<p class="why-sub">Largest factors in this call, compared with an average call. Fields left blank are not counted.</p>'
+        f'{"".join(rows)}</section>'
+    )
 
 
 def placeholder_card() -> str:

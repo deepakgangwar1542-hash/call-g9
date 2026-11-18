@@ -90,6 +90,53 @@ def _v2_row(clean: dict, bundle: dict) -> pd.DataFrame:
     return frame
 
 
+FIELD_TITLES = {
+    "road_type": "Road type", "speed_limit": "Speed limit", "weather": "Weather", "light_condition": "Lighting",
+    "junction_detail": "Junction", "hour": "Time of day", "day_of_week": "Day of week", "month": "Month",
+    "urban_or_rural_area": "Area", "first_road_class": "Road class", "junction_control": "Junction control",
+    "road_surface_conditions": "Road surface", "police_force": "Police force area",
+}
+_DAYS = {1: "Sunday", 2: "Monday", 3: "Tuesday", 4: "Wednesday", 5: "Thursday", 6: "Friday", 7: "Saturday"}
+_MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+           "November", "December"]
+
+
+def _describe(field: str, row: dict) -> str:
+    value = row[field]
+    if field == "speed_limit":
+        return f"{value} mph"
+    if field == "hour":
+        return f"{int(value):02d}:00"
+    if field == "day_of_week":
+        return _DAYS[int(value)]
+    if field == "month":
+        return _MONTHS[int(value) - 1]
+    if field == "police_force":
+        return POLICE_FORCE[str(value)]
+    if field in OPTIONAL_LABELS:
+        return OPTIONAL_LABELS[field][str(value)]
+    return str(value)
+
+
+def explain(clean: dict, top_n: int = 4, min_effect: float = 0.02) -> list[dict]:
+    """Top reasons behind a v2 score, from LightGBM's built-in exact SHAP values (pred_contrib).
+
+    Each reason carries `effect`, the feature's push on the log-odds of high risk (positive raises risk).
+    Fields the dispatcher left blank are never shown: the model treats them as 'unknown', which is not a reason.
+    Returns [] when the v2 model is unavailable."""
+    try:
+        bundle, _ = _load_v2()
+        frame = _v2_row(clean, bundle)
+        contrib = bundle["model"].predict(frame, pred_contrib=True)[0]
+        when = dt.datetime.fromisoformat(clean["call_time"]) if "call_time" in clean else dt.datetime.now()
+        shown = {**clean, "hour": when.hour, "day_of_week": when.isoweekday() % 7 + 1, "month": when.month}
+        reasons = [dict(field=f, title=FIELD_TITLES[f], value=_describe(f, shown), effect=float(c))
+                   for f, c in zip(bundle["features"], contrib[:-1]) if f in shown and abs(c) >= min_effect]
+        return sorted(reasons, key=lambda r: -abs(r["effect"]))[:top_n]
+    except Exception:
+        return []
+
+
 def _score(p: float, meta: dict, **extra) -> dict:
     high = p >= meta["threshold"]
     return dict(risk_flag="High risk" if high else "Low risk",
@@ -103,7 +150,7 @@ def predict_call(call: dict) -> dict:
     try:
         bundle, meta = _load_v2()
         p = float(bundle["model"].predict_proba(_v2_row(clean, bundle))[0, 1])
-        return _score(p, meta, model_tier=bundle["tier"])
+        return _score(p, meta, model_tier=bundle["tier"], reasons=explain(clean))
     except Exception:
         pass
     try:                                         # v2 missing / broken -> v1 five-feature model
