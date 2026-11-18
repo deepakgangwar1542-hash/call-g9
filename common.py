@@ -91,5 +91,28 @@ TIERS = {
 MULTI_CATEGORICAL = ["road_type", "speed_limit", "weather", "light_condition", "junction_detail", "day_of_week",
                      "month"] + CONTEXT_FEATURES + FORCE_FEATURES
 
+# Dispatcher-facing labels for the optional v2 fields. Only codes whose meaning is certain are exposed in the UI;
+# pedestrian_crossing and carriageway_hazards are not asked for and are sent to the model as "-1" (unknown).
+OPTIONAL_LABELS = {
+    "urban_or_rural_area": {"1": "Urban", "2": "Rural"},
+    "first_road_class": {"1": "Motorway", "2": "A(M) road", "3": "A road", "4": "B road", "5": "C road",
+                         "6": "Unclassified"},
+    "junction_control": {"1": "Authorised person", "2": "Automatic traffic signal", "3": "Stop sign",
+                         "4": "Give way or uncontrolled"},
+    "road_surface_conditions": {"1": "Dry", "2": "Wet or damp", "3": "Snow", "4": "Frost or ice", "5": "Flood"},
+}
+POLICE_FORCE = {
+    "1": "Metropolitan Police", "3": "Cumbria", "4": "Lancashire", "5": "Merseyside", "6": "Greater Manchester",
+    "7": "Cheshire", "10": "Northumbria", "11": "Durham", "12": "North Yorkshire", "13": "West Yorkshire",
+    "14": "South Yorkshire", "16": "Humberside", "17": "Cleveland", "20": "West Midlands", "21": "Staffordshire",
+    "22": "West Mercia", "23": "Warwickshire", "30": "Derbyshire", "31": "Nottinghamshire", "32": "Lincolnshire",
+    "33": "Leicestershire", "34": "Northamptonshire", "35": "Cambridgeshire", "36": "Norfolk", "37": "Suffolk",
+    "40": "Bedfordshire", "41": "Hertfordshire", "42": "Essex", "43": "Thames Valley", "44": "Hampshire",
+    "45": "Surrey", "46": "Kent", "47": "Sussex", "48": "City of London", "50": "Devon and Cornwall",
+    "52": "Avon and Somerset", "53": "Gloucestershire", "54": "Wiltshire", "55": "Dorset", "60": "North Wales",
+    "61": "Gwent", "62": "South Wales", "63": "Dyfed-Powys", "99": "Police Scotland",
+}
+OPTIONAL_FIELDS = list(OPTIONAL_LABELS) + ["police_force"]
+
 LGBM_PARAMS = dict(n_estimators=400, learning_rate=0.03, num_leaves=31, min_child_samples=40, subsample=0.8,
                    subsample_freq=1, colsample_bytree=0.8, reg_lambda=5, verbose=-1, random_state=SEED, n_jobs=2)

@@ -24,10 +24,41 @@ def test_invalid_speed_rejected():                # FR-1.3
     except ValidationError as e: assert "45" in str(e)
 
 def test_fallback_when_model_missing():           # AC-3, FR-2.4
-    predict._cache.clear(); real = common.MODEL_PATH
+    predict._cache.clear(); real, real2 = common.MODEL_PATH, common.V2_MODEL_PATH
     predict.MODEL_PATH = real.with_name("nope.joblib")
-    r = predict_call(OK); predict.MODEL_PATH = real; predict._cache.clear()
+    predict.V2_MODEL_PATH = real2.with_name("nope.joblib")
+    r = predict_call(OK); predict.MODEL_PATH, predict.V2_MODEL_PATH = real, real2; predict._cache.clear()
     assert r["is_estimate"] and r["risk_flag"] == "Low risk"
+
+def test_v2_is_primary_and_v1_is_fallback():
+    predict._cache.clear()
+    assert predict_call(OK)["model_tier"] == "T4_plus_force"
+    real2 = common.V2_MODEL_PATH
+    predict._cache.clear(); predict.V2_MODEL_PATH = real2.with_name("nope.joblib")
+    try: r = predict_call(OK)
+    finally: predict.V2_MODEL_PATH = real2; predict._cache.clear()
+    assert r["model_tier"] == "v1_base5" and not r["is_estimate"]
+
+def test_v2_row_keeps_every_input_as_a_real_category():
+    bundle, _ = predict._load_v2()
+    rich = predict.validate({**OK, "urban_or_rural_area": "2", "first_road_class": "3", "junction_control": "2",
+                             "road_surface_conditions": "4", "police_force": "1", "call_time": "2026-01-10T03:15"})
+    row = predict._v2_row(rich, bundle)
+    assert not row.isna().any().any(), row.isna().any()[lambda s: s].index.tolist()
+    assert row["road_surface_conditions"].iloc[0] == 4 and row["police_force"].iloc[0] == 1
+    assert row["month"].iloc[0] == 1 and row["hour"].iloc[0] == 3
+    blank = predict._v2_row(predict.validate(OK), bundle)
+    assert blank["first_road_class"].iloc[0] == -1          # unknown is the trained '-1' category, not NaN
+    assert blank["police_force"].isna().iloc[0]             # force has no unknown category, so it stays missing
+
+def test_optional_fields_validated_and_change_score():
+    bad = {**OK, "first_road_class": "99"}
+    try: validate(bad); assert False
+    except ValidationError as e: assert "first_road_class" in str(e)
+    rich = {**OK, "urban_or_rural_area": "2", "first_road_class": "3", "road_surface_conditions": "4", "police_force": "1",
+            "call_time": "2026-01-10T03:15"}
+    assert 0 <= predict_call(rich)["risk_score"] <= 1
+    assert predict_call(rich)["risk_score"] != predict_call(OK)["risk_score"]
 
 def test_zero_dispatch_guard():                   # AC-4, FR-3.3
     import pandas as pd

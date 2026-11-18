@@ -1,10 +1,11 @@
 """Call Severity Triage — dispatch desk and shift review."""
+import datetime as dt
 import time
 
 import streamlit as st
 
-from common import CHOICES, VALID_SPEED
-from predict import ValidationError, predict_call
+from common import CHOICES, OPTIONAL_LABELS, POLICE_FORCE, VALID_SPEED
+from predict import ValidationError, predict_call, validate
 import db
 import theme
 
@@ -24,7 +25,7 @@ dispatch_tab, review_tab = st.tabs(["Dispatch desk", "Shift review"])
 
 with dispatch_tab:
     st.markdown(theme.page_intro(
-        "New call assessment", "Enter the five conditions known at call time to generate a risk flag and log the assessment."
+        "New call assessment", "Enter the five core conditions to generate a risk flag and log the assessment. Optional detail sharpens the score."
     ), unsafe_allow_html=True)
 
     intake_col, result_col = st.columns([1.08, 0.92], gap="large")
@@ -37,6 +38,14 @@ with dispatch_tab:
             weather = st.selectbox("Weather", [""] + CHOICES["weather"], format_func=lambda value: value or "Select weather conditions")
             light = st.selectbox("Light condition", [""] + CHOICES["light_condition"], format_func=lambda value: value or "Select a light condition")
             junction = st.selectbox("Junction detail", [""] + CHOICES["junction_detail"], format_func=lambda value: value or "Select junction detail")
+            with st.expander("More detail (optional, improves accuracy)"):
+                st.caption("Call time is captured automatically. Leave a field blank if it is not known.")
+                optional = {}
+                for field, label in [("urban_or_rural_area", "Area type"), ("first_road_class", "Road class"),
+                                     ("junction_control", "Junction control"), ("road_surface_conditions", "Road surface")]:
+                    labels = OPTIONAL_LABELS[field]
+                    optional[field] = st.selectbox(label, [""] + list(labels), format_func=lambda v, m=labels: m.get(v, "Not known"), key=f"opt_{field}")
+                optional["police_force"] = st.selectbox("Police force area", [""] + list(POLICE_FORCE), format_func=lambda v: POLICE_FORCE.get(v, "Not known"), key="opt_police_force")
             go = st.form_submit_button("Assess and log call", type="primary", width="stretch")
 
         if go:
@@ -46,12 +55,14 @@ with dispatch_tab:
                 "weather": weather,
                 "light_condition": light,
                 "junction_detail": junction,
+                **{k: v for k, v in optional.items() if v},
+                "call_time": dt.datetime.now(),
             }
             try:
                 started = time.perf_counter()
                 prediction = predict_call(call)
                 elapsed_ms = (time.perf_counter() - started) * 1000
-                call_id = db.log_call({**call, "speed_limit": int(speed)}, prediction)
+                call_id = db.log_call(validate(call), prediction)
                 st.session_state["last"] = (call_id, prediction, elapsed_ms)
                 st.session_state.pop("err", None)
                 st.session_state.pop("saved", None)

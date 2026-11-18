@@ -1,5 +1,5 @@
 """STEP 15: Call logging (SQLite) - NFR-3, FR-1.4, FR-1.5, FR-3.x"""
-import sqlite3, uuid, datetime as dt
+import json, sqlite3, uuid, datetime as dt
 from contextlib import contextmanager
 import pandas as pd
 from common import precision_at_k
@@ -15,6 +15,9 @@ SCHEMA = """CREATE TABLE IF NOT EXISTS calls(
 
 DB_PATH = common.DB_PATH   # tests can override db.DB_PATH
 
+# Added for model v2; applied in place so existing call logs keep working.
+MIGRATIONS = {"model_tier": "TEXT", "details_json": "TEXT"}
+
 
 @contextmanager
 def conn():
@@ -22,6 +25,10 @@ def conn():
     c = sqlite3.connect(DB_PATH)
     try:
         c.execute(SCHEMA)
+        have = {row[1] for row in c.execute("PRAGMA table_info(calls)")}
+        for column, kind in MIGRATIONS.items():
+            if column not in have:
+                c.execute(f"ALTER TABLE calls ADD COLUMN {column} {kind}")
         yield c
         c.commit()
     finally:
@@ -31,12 +38,15 @@ def conn():
 def log_call(clean: dict, pred: dict) -> str:
     """Store one accepted, scored call; returns its unique call ID (FR-1.4, NFR-3)."""
     cid = str(uuid.uuid4())
+    extras = {k: v for k, v in clean.items() if k in common.OPTIONAL_FIELDS or k == "call_time"}
     with conn() as c:
         c.execute("INSERT INTO calls(call_id,timestamp,road_type,speed_limit,weather,light_condition,junction_detail,"
-                  "predicted_risk,confidence_score,risk_score,model_version,is_estimate) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+                  "predicted_risk,confidence_score,risk_score,model_version,is_estimate,model_tier,details_json) "
+                  "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                   (cid, dt.datetime.now().isoformat(timespec="seconds"), clean["road_type"], clean["speed_limit"],
                    clean["weather"], clean["light_condition"], clean["junction_detail"], pred["risk_flag"],
-                   pred["confidence"], pred["risk_score"], pred["model_version"], int(pred["is_estimate"])))
+                   pred["confidence"], pred["risk_score"], pred["model_version"], int(pred["is_estimate"]),
+                   pred.get("model_tier"), json.dumps(extras) if extras else None))
     return cid
 
 

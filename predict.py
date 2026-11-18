@@ -1,10 +1,45 @@
-"""STEP 13: Prediction pipeline - validation (FR-1.2/1.3), model flag, Level 0 fallback (FR-2.4)."""
+"""STEP 13: Prediction pipeline - validation (FR-1.2/1.3), model flag, fallback chain (FR-2.4).
+
+Fallback chain: v2 LightGBM (15 features) -> v1 RandomForest (5 features) -> Level 0 baseline (unscored).
+"""
+import datetime as dt
 import json
-import joblib, pandas as pd
+
+import joblib
+import pandas as pd
+
 from common import *
+
 
 class ValidationError(ValueError):
     pass
+
+
+def _clean_optional(call: dict) -> dict:
+    """Validate the optional v2 fields. Anything left blank is simply omitted and handled as 'unknown' at scoring."""
+    extra = {}
+    for field, labels in OPTIONAL_LABELS.items():
+        value = call.get(field)
+        if value in (None, "", []):
+            continue
+        if str(value) not in labels:
+            raise ValidationError(f"Invalid {field} value: {value!r}")
+        extra[field] = str(value)
+    force = call.get("police_force")
+    if force not in (None, "", []):
+        if str(force) not in POLICE_FORCE:
+            raise ValidationError(f"Invalid police_force value: {force!r}")
+        extra["police_force"] = str(force)
+    when = call.get("call_time")
+    if when not in (None, ""):
+        if isinstance(when, str):
+            try:
+                when = dt.datetime.fromisoformat(when)
+            except ValueError:
+                raise ValidationError(f"Invalid call_time value: {when!r}")
+        extra["call_time"] = when.isoformat(timespec="minutes")
+    return extra
+
 
 def validate(call: dict) -> dict:
     missing = [f for f in FEATURES if call.get(f) in (None, "", [])]
@@ -19,26 +54,62 @@ def validate(call: dict) -> dict:
     for f in ("road_type", "weather", "light_condition", "junction_detail"):
         if call[f] not in CHOICES[f]:
             raise ValidationError(f"Invalid {f} value: {call[f]!r}")
-    return {**{f: call[f] for f in FEATURES}, "speed_limit": sl}
+    return {**{f: call[f] for f in FEATURES}, "speed_limit": sl, **_clean_optional(call)}
+
 
 _cache = {}
-def _load():
-    if "m" not in _cache:
-        _cache["m"] = joblib.load(MODEL_PATH)
-        _cache["meta"] = json.load(open(META_PATH))
-    return _cache["m"], _cache["meta"]
+
+
+def _load_v1():
+    if "v1" not in _cache:
+        _cache["v1"] = (joblib.load(MODEL_PATH), json.load(open(META_PATH)))
+    return _cache["v1"]
+
+
+def _load_v2():
+    if "v2" not in _cache:
+        _cache["v2"] = (joblib.load(V2_MODEL_PATH), json.load(open(V2_META_PATH)))
+    return _cache["v2"]
+
+
+def _v2_row(clean: dict, bundle: dict) -> pd.DataFrame:
+    """Build one model row. Blank context fields become '-1' (the unknown category the model was trained on);
+    a blank police force becomes a missing value, which LightGBM routes by its learned default direction."""
+    when = dt.datetime.fromisoformat(clean["call_time"]) if "call_time" in clean else dt.datetime.now()
+    row = {**clean, "hour": when.hour, "day_of_week": str(when.isoweekday() % 7 + 1), "month": str(when.month)}
+    for field in CONTEXT_FEATURES:
+        row.setdefault(field, "-1")
+    row.setdefault("police_force", None)
+    frame = pd.DataFrame([row])[bundle["features"]]
+    for col, cats in bundle["categories"].items():
+        values = frame[col]
+        if pd.api.types.is_integer_dtype(pd.Index(cats).dtype):
+            # Categories were learned as integers; string codes would not match and silently become NaN.
+            values = values.map(lambda v: None if v is None or v != v else int(v))
+        frame[col] = pd.Categorical(values, categories=cats)
+    return frame
+
+
+def _score(p: float, meta: dict, **extra) -> dict:
+    high = p >= meta["threshold"]
+    return dict(risk_flag="High risk" if high else "Low risk",
+                confidence=round(p if high else 1 - p, 3), risk_score=round(p, 4),
+                model_version=meta["model_version"], is_estimate=False, **extra)
+
 
 def predict_call(call: dict) -> dict:
-    """Returns dict: risk_flag, confidence, risk_score, model_version, is_estimate."""
+    """Returns dict: risk_flag, confidence, risk_score, model_version, is_estimate, model_tier."""
     clean = validate(call)                       # raises ValidationError -> nothing is stored
     try:
-        model, meta = _load()
+        bundle, meta = _load_v2()
+        p = float(bundle["model"].predict_proba(_v2_row(clean, bundle))[0, 1])
+        return _score(p, meta, model_tier=bundle["tier"])
+    except Exception:
+        pass
+    try:                                         # v2 missing / broken -> v1 five-feature model
+        model, meta = _load_v1()
         X = pd.DataFrame([clean])[FEATURES].astype({"speed_limit": str})
-        p = float(model.predict_proba(X)[0, 1])
-        high = p >= meta["threshold"]
-        return dict(risk_flag="High risk" if high else "Low risk",
-                    confidence=round(p if high else 1 - p, 3), risk_score=round(p, 4),
-                    model_version=meta["model_version"], is_estimate=False)
-    except Exception:                            # model missing / broken -> Level 0 baseline
+        return _score(float(model.predict_proba(X)[0, 1]), meta, model_tier="v1_base5")
+    except Exception:                            # both missing -> Level 0 baseline
         return dict(risk_flag="Low risk", confidence=None, risk_score=None,
-                    model_version="Level0-fallback", is_estimate=True)
+                    model_version="Level0-fallback", is_estimate=True, model_tier="level0")
