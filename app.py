@@ -1,13 +1,17 @@
 """Call Severity Triage — dispatch desk and shift review."""
 import datetime as dt
+import json
 import time
 
 import streamlit as st
 
-from common import CHOICES, OPTIONAL_LABELS, POLICE_FORCE, VALID_SPEED
+from common import CHOICES, OPTIONAL_LABELS, POLICE_FORCE, ROOT, VALID_SPEED
 from intake import extract_fields, redact
+from messages import parse_message
 from predict import ValidationError, predict_call, validate, what_if
+import context
 import db
+import insights
 import report
 import theme
 import views
@@ -23,8 +27,59 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-dispatch_tab, control_tab, capacity_tab, review_tab, health_tab = st.tabs(
-    ["Dispatch desk", "Control room", "Capacity planner", "Shift review", "Model health"])
+dispatch_tab, pulse_tab, control_tab, capacity_tab, review_tab, health_tab = st.tabs(
+    ["Dispatch desk", "Pulse", "Control room", "Capacity planner", "Shift review", "Model health"])
+
+CONTEXT_FIELDS = {"light_condition": "f_light", "weather": "f_weather", "police_force": "opt_police_force",
+                  "urban_or_rural_area": "opt_urban_or_rural_area", "road_surface_conditions": "opt_road_surface_conditions"}
+CONTEXT_LABELS = {"light_condition": "Light", "weather": "Weather", "police_force": "Police force",
+                  "urban_or_rural_area": "Area type", "road_surface_conditions": "Road surface"}
+
+
+def valid_options(field: str) -> list:
+    """Values the form accepts for a field, so a suggestion can never put an invalid value in a widget."""
+    if field in CHOICES:
+        return CHOICES[field]
+    return list(POLICE_FORCE) if field == "police_force" else list(OPTIONAL_LABELS[field])
+
+
+def apply_location() -> None:
+    """Button callback: read an AML or eCall message, then fill light, weather, force, area and surface from place and time."""
+    parsed = parse_message(st.session_state.get("loc_text", ""))
+    st.session_state["loc_parsed"] = parsed
+    st.session_state.pop("loc_filled", None)
+    st.session_state.pop("loc_time", None)
+    if parsed["lat"] is None or parsed["lon"] is None:
+        return
+    when = parsed["call_time"] or dt.datetime.now()
+    if parsed["call_time"]:
+        st.session_state["loc_time"] = parsed["call_time"]
+    suggestions = context.auto_context(parsed["lat"], parsed["lon"], when)
+    filled = {}
+    for field, widget_key in CONTEXT_FIELDS.items():
+        item = suggestions.get(field)
+        if not item:
+            continue
+        if item["value"] in valid_options(field):
+            st.session_state[widget_key] = item["value"]
+            filled[field] = item
+    st.session_state["loc_filled"] = filled
+
+
+def ask_next_summary() -> str | None:
+    """One honest line from the out-of-time test of the ask-next ranking, if that report exists."""
+    path = ROOT / "reports/ask_next_eval.json"
+    table = ROOT / "reports/ask_next_eval.csv"
+    if not (path.exists() and table.exists()):
+        return None
+    import pandas as pd
+    rows = pd.read_csv(table)
+    ask = rows[(rows.strategy == "ask next (engine order)") & (rows.questions == 1)].iloc[0]
+    rand = rows[(rows.strategy == "random order (mean of 5)") & (rows.questions == 1)].iloc[0]
+    interval = json.loads(path.read_text())["ask_next_minus_random_one_question"]["ci95"]["log_loss"]
+    return (f"Tested on 2025 calls: asking the top-ranked question first gave better-calibrated scores than asking a random one "
+            f"(log loss {ask.log_loss:.3f} against {rand.log_loss:.3f}; difference interval {interval[0]:.3f} to {interval[1]:.3f}). "
+            f"The effect on how well calls are ranked was small and not statistically clear.")
 
 
 def apply_intake() -> None:
@@ -45,6 +100,27 @@ with dispatch_tab:
     with intake_col:
         st.markdown(theme.section_title("Call conditions", "activity"), unsafe_allow_html=True)
         st.caption("All five fields are required. Choose the closest available category.")
+        with st.expander("Paste a location message (phone AML or vehicle eCall)"):
+            st.text_area("Location message", key="loc_text", height=80, label_visibility="collapsed",
+                         placeholder='e.g. A"ML";lt=+51.5074;lg=-0.1278;rd=18;top=20260624113000;lc=95;pm=G')
+            st.button("Read message and fill from location", on_click=apply_location)
+            parsed = st.session_state.get("loc_parsed")
+            if parsed:
+                for problem in parsed["problems"]:
+                    st.warning(problem)
+                if parsed["lat"] is not None:
+                    radius = f", within {parsed['radius_m']:.0f} m" if parsed["radius_m"] is not None else ""
+                    st.caption(f"{'Phone location' if parsed['kind'] == 'aml' else 'Vehicle crash alert'}: "
+                               f"{parsed['lat']:.4f}, {parsed['lon']:.4f}{radius}"
+                               + (f". Call time taken from the message: {parsed['call_time']:%d %b %Y %H:%M}" if parsed["call_time"] else "."))
+                for label, value in parsed["details"].items():
+                    st.caption(f"{label}: {value}")
+                for field, item in st.session_state.get("loc_filled", {}).items():
+                    shown = POLICE_FORCE.get(item["value"], item["value"]) if field == "police_force" else (
+                        OPTIONAL_LABELS[field].get(item["value"], item["value"]) if field in OPTIONAL_LABELS else item["value"])
+                    st.caption(f"{CONTEXT_LABELS[field]}: {shown} ({item['source'].lower()}; {item['detail']})")
+                if st.session_state.get("loc_filled"):
+                    st.caption("These are suggestions. Check each one against what the caller says, and street lighting and road class by voice.")
         with st.expander("Describe the call in words (optional)"):
             st.text_area("Call description", key="intake_text", height=90, label_visibility="collapsed",
                          placeholder="e.g. Car off the road on the A38 near a village, 60mph, raining, no street lights, icy surface")
@@ -80,7 +156,7 @@ with dispatch_tab:
                 "light_condition": light,
                 "junction_detail": junction,
                 **{k: v for k, v in optional.items() if v},
-                "call_time": dt.datetime.now(),
+                "call_time": st.session_state.pop("loc_time", None) or dt.datetime.now(),
             }
             try:
                 started = time.perf_counter()
@@ -104,6 +180,22 @@ with dispatch_tab:
             st.markdown(theme.verdict_card(prediction, elapsed_ms, call_id), unsafe_allow_html=True)
             st.markdown(theme.calibration_card(prediction.get("calibration"), views.BASE_RATE), unsafe_allow_html=True)
             st.markdown(theme.reasons_card(prediction.get("reasons", [])), unsafe_allow_html=True)
+            if prediction.get("calibration") and "last_call" in st.session_state:
+                try:
+                    questions = insights.ask_next(st.session_state["last_call"])
+                except ValidationError:
+                    questions = []
+                if questions:
+                    with st.container(border=True):
+                        st.markdown(theme.section_title("Ask next", "phone"), unsafe_allow_html=True)
+                        st.caption("Unanswered questions, ranked by how much the answer could move this call's risk.")
+                        for rank, item in enumerate(questions, 1):
+                            st.markdown(f"**{rank}. {item['question']}**  \n"
+                                        f"The answer moves the score between {item['lowers']['points']:+.1f} points "
+                                        f"({item['lowers']['answer']}) and {item['raises']['points']:+.1f} points "
+                                        f"({item['raises']['answer']}). Typical shift {item['expected_points']:.1f} points.")
+                        if summary := ask_next_summary():
+                            st.caption(summary)
             if prediction.get("calibration") and "last_call" in st.session_state:
                 with st.expander("What if the conditions change?"):
                     st.caption("Re-score this call with different conditions. Nothing is logged.")
@@ -265,6 +357,9 @@ with review_tab:
         })
         columns = [name for name in ["Call ID", "Logged", "Result", "Confidence", "Limit (mph)", "Enhanced response", "Actual outcome"] if name in display_calls.columns]
         st.dataframe(display_calls[columns], width="stretch", hide_index=True)
+
+with pulse_tab:
+    views.pulse()
 
 with control_tab:
     views.control_room()

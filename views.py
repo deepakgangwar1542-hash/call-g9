@@ -10,10 +10,13 @@ import streamlit as st
 import analytics
 import shift_sim
 import theme
-from common import HEX_PATH, OPTIONAL_LABELS, REPLAY_PATH, ROOT, V2_META_PATH
+from common import HEX_PATH, OPTIONAL_LABELS, POLICE_FORCE, REPLAY_PATH, ROOT, V2_META_PATH
 
 RED, GREEN, AMBER, MUTED, TEXT = "#e11d2e", "#3ecf8e", "#f0bd5e", "#a7a7b2", "#e9e9ee"
 SHIFT_MINUTES = 480
+PULSE_CELLS_PATH = ROOT / "data/processed/pulse_cells.csv"
+PULSE_PROFILES_PATH = ROOT / "data/processed/pulse_profiles.csv"
+DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 
 
 def _base_rate() -> float:
@@ -150,6 +153,99 @@ def control_room() -> None:
             f"{int(m.serious_arrived)} serious/fatal calls against <strong>{int(f.serious_caught)}</strong> for first come, first served. "
             f"Mean wait for those calls: {m.mean_wait_serious:.0f} min against {f.mean_wait_serious:.0f} min. "
             "This is a hindsight simulation on collision data, not a prediction of real-world outcomes.", "warn"), unsafe_allow_html=True)
+
+
+# ----------------------------------------------------------------------------------------------------- pulse
+def _slot_label(how: int) -> str:
+    return f"{DAYS[how // 24]} {how % 24:02d}:00"
+
+
+@st.cache_data(show_spinner=False)
+def load_pulse() -> tuple[pd.DataFrame, dict, np.ndarray, float]:
+    """Cells, the weekly share of serious/fatal collisions per area type, the national weekly curve and the colour ceiling."""
+    cells = pd.read_csv(PULSE_CELLS_PATH)
+    profiles = pd.read_csv(PULSE_PROFILES_PATH)
+    shares = {int(area): group.sort_values("how").share.to_numpy() for area, group in profiles.groupby("area")}
+    per_year = cells.serious_per_year.to_numpy()
+    weekly = sum(per_year[cells.area.to_numpy() == area].sum() * share for area, share in shares.items())
+    ceiling = max((per_year[cells.area.to_numpy() == area] * share.max()).max() for area, share in shares.items())
+    return cells, shares, weekly, float(ceiling)
+
+
+def _pulse_body(cells: pd.DataFrame, shares: dict, weekly: np.ndarray, ceiling: float) -> None:
+    if st.session_state.get("pulse_playing"):
+        st.session_state["pulse_how"] = (st.session_state.get("pulse_how", 0) + 1) % 168
+    how = st.select_slider("Hour of the week", options=list(range(168)), key="pulse_how", format_func=_slot_label)
+
+    now = cells.copy()
+    now["expected"] = now.serious_per_year * now.area.map(lambda a: shares[int(a)][how])
+    strength = np.sqrt((now.expected / ceiling).clip(0, 1))
+    now["r"] = (120 + strength * 135).astype(int)
+    now["g"] = (70 - strength * 40).astype(int)
+    now["b"] = (80 - strength * 40).astype(int)
+    now["height"] = (strength ** 2 * 70000).astype(int)
+    now["label"] = now.expected.round(3)
+    mapped = now[now.expected > ceiling * 0.004]
+
+    average_slot = weekly.mean()
+    by_force = now.groupby("force").expected.sum().sort_values(ascending=False)
+    top_force = POLICE_FORCE.get(str(int(by_force.index[0])), "Unknown")
+    tiles = st.columns(3, gap="medium")
+    for column, (value, label, icon, tone) in zip(tiles, [
+            (f"{weekly[how]:.0f}", "Serious/fatal collisions per year in this hour slot", "alert", "red"),
+            (f"{weekly[how] / average_slot:.1f}x", "Compared with an average hour", "activity", "amber"),
+            (top_force, "Area with most expected now", "siren", "blue")]):
+        with column:
+            st.markdown(theme.metric_tile(value, label, icon, tone), unsafe_allow_html=True)
+
+    map_col, curve_col = st.columns([1.35, 1], gap="large")
+    with map_col:
+        layer = pdk.Layer("H3HexagonLayer", mapped, get_hexagon="hex", get_fill_color="[r, g, b, 230]", get_elevation="height",
+                          extruded=True, pickable=True, stroked=False, elevation_scale=1)
+        deck = pdk.Deck(layers=[layer], initial_view_state=pdk.ViewState(latitude=54.0, longitude=-2.6, zoom=4.7, pitch=45),
+                        map_style="dark", tooltip={"text": "Expected serious/fatal per year in this slot: {label}"})
+        st.pydeck_chart(deck, height=470)
+    with curve_col:
+        fig = go.Figure(go.Scatter(x=list(range(168)), y=weekly, mode="lines", line=dict(color=RED, width=2), name="Expected"))
+        fig.add_vline(x=how, line_color=AMBER, line_width=2)
+        fig.update_xaxes(title=None, tickmode="array", tickvals=[d * 24 for d in range(7)], ticktext=[d[:3] for d in DAYS])
+        fig.update_yaxes(title="Serious/fatal per year, all mapped cells")
+        st.plotly_chart(_style(fig, 300), width="stretch")
+        st.markdown(theme.section_title("Highest expected right now", "list"), unsafe_allow_html=True)
+        top = by_force.head(5)
+        st.dataframe(pd.DataFrame({"Police force area": [POLICE_FORCE.get(str(int(f)), "Unknown") for f in top.index],
+                                   "Expected per year": top.round(1).to_numpy()}), hide_index=True, width="stretch")
+
+
+def pulse() -> None:
+    st.markdown(theme.page_intro(
+        "Pulse of Britain",
+        "Where serious and fatal collisions are expected, hour by hour across a typical week. Press play to watch the week move, "
+        "or drag the slider to a specific hour."
+    ), unsafe_allow_html=True)
+    if not (PULSE_CELLS_PATH.exists() and PULSE_PROFILES_PATH.exists()):
+        st.info("The pulse data is not built yet. Run step8_pulse.py first.")
+        return
+    cells, shares, weekly, ceiling = load_pulse()
+    play_col, _ = st.columns([1, 3])
+    with play_col:
+        st.toggle("Play the week", key="pulse_playing")
+    st.session_state.setdefault("pulse_how", 17 * 1 + 24 * 5)
+    run_every = 0.8 if st.session_state.get("pulse_playing") else None
+    st.fragment(run_every=run_every)(_pulse_body)(cells, shares, weekly, ceiling)
+
+    check = _load_json("pulse_validation.json")
+    if check:
+        cap = check["capture"]
+        low, high = check["profile_minus_flat_capture_ci95"]
+        st.markdown(theme.note_card(
+            f"<strong>How far to trust this.</strong> Rankings built from 2021-2024 were tested on 2025. The top 10% of area-and-time bands "
+            f"held <strong>{cap['hour-of-week profile (force and area)']:.0%}</strong> of 2025 serious/fatal collisions, against "
+            f"{cap['flat week']:.0%} if every hour of the week were treated the same (gain {low * 100:.1f} to {high * 100:.1f} points, 95% interval). "
+            "Adding a separate weekly pattern for each police force did not improve on one national pattern per area type, so the map uses the simpler one. "
+            "Cells show where collisions are expected, not individual events.", "info"), unsafe_allow_html=True)
+    st.caption("Heights and colours show expected serious/fatal collisions per year in the chosen hour slot, summed over every week of the year. "
+               "Weekly patterns are shared across all urban areas and all rural areas.")
 
 
 # ------------------------------------------------------------------------------------------ capacity planner

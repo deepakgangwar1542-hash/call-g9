@@ -1,0 +1,22 @@
+{
+  "test_year": 2025,
+  "cells": 7934,
+  "held_out_serious_collisions": 21264,
+  "top_share_of_cell_bands": 0.1,
+  "capture": {
+    "hour-of-week profile (force and area)": 0.5766083521444695,
+    "national profile by area only": 0.5784424379232506,
+    "flat week": 0.5283577878103838
+  },
+  "spearman": {
+    "hour-of-week profile (force and area)": 0.3204437552536413,
+    "national profile by area only": 0.3212164708624525,
+    "flat week": 0.29064068794884007
+  },
+  "profile_minus_flat_capture_ci95": [
+    0.04410976297968397,
+    0.05234198645598194
+  ],
+  "profile_minus_flat_capture": 0.0482505643340857,
+  "note": "Capture = share of 2025 serious/fatal collisions falling in the 10% of cell-time bands ranked highest from 2021-2024. The 24 bands are weekday/Saturday/Sunday by eight three-hour blocks."
+}
