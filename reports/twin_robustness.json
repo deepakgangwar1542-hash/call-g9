@@ -1,0 +1,58 @@
+{
+  "settings": 27,
+  "shifts_per_setting": 20,
+  "calls_per_shift": 600,
+  "settings_where_model_clearly_better": 25,
+  "settings_where_model_clearly_worse": 0,
+  "settings_inconclusive": 2,
+  "median_gain_points_all": 7.679804666762891,
+  "median_gain_points_when_units_cover_under_half_of_calls": 7.679804666762891,
+  "best_setting": {
+    "units": 12.0,
+    "service_min": 20.0,
+    "patience_min": 20.0,
+    "capacity_share_of_calls": 0.48,
+    "mean_gain_points": 13.311837612562563,
+    "ci_lo": 11.633790966481463,
+    "ci_hi": 14.9393317242947,
+    "wins": 20.0,
+    "shifts": 20.0
+  },
+  "worst_setting": {
+    "units": 24.0,
+    "service_min": 20.0,
+    "patience_min": 20.0,
+    "capacity_share_of_calls": 0.96,
+    "mean_gain_points": 0.4557758899198688,
+    "ci_lo": -0.22619435482803138,
+    "ci_hi": 1.244976474777624,
+    "wins": 11.0,
+    "shifts": 20.0
+  },
+  "age_weight_sweep_units12_service30_patience20": [
+    {
+      "age_weight": 0.0,
+      "mean_gain_points": 10.253794720955668,
+      "ci_lo": 8.283659371479601,
+      "ci_hi": 12.300219056692614
+    },
+    {
+      "age_weight": 0.002,
+      "mean_gain_points": 10.513942482880601,
+      "ci_lo": 8.413681974878397,
+      "ci_hi": 12.707891263611756
+    },
+    {
+      "age_weight": 0.01,
+      "mean_gain_points": 9.009657400587727,
+      "ci_lo": 7.2969152601726694,
+      "ci_hi": 10.789140588868262
+    },
+    {
+      "age_weight": 0.05,
+      "mean_gain_points": 3.533643481626372,
+      "ci_lo": 2.7226743410834304,
+      "ci_hi": 4.378617305358958
+    }
+  ]
+}

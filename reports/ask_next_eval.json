@@ -1,0 +1,20 @@
+{
+  "test_year": 2025,
+  "calls_in_sample": 8000,
+  "base_rate": 0.263125,
+  "train_years": "2021-2024",
+  "ask_next_minus_random_one_question": {
+    "roc_auc": 0.005564158200012437,
+    "ci95": {
+      "roc_auc": [
+        -0.002551749676758358,
+        0.009492088376286397
+      ],
+      "log_loss": [
+        -0.017529736580550438,
+        -0.012303401018648715
+      ]
+    }
+  },
+  "note": "Calls where any optional answer is recorded as unknown are excluded. CI is a paired bootstrap against one random run."
+}

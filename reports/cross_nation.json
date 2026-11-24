@@ -1,0 +1,68 @@
+[
+  {
+    "tier": "T2_plus_time",
+    "test_nation": "England",
+    "n": 94418,
+    "base_rate": 0.2519,
+    "roc_auc": 0.5886,
+    "P@2pct_lift": 1.7697,
+    "level1_P@2pct_lift": 1.3384,
+    "mean_predicted": 0.2274,
+    "calibration_gap_points": -2.4441
+  },
+  {
+    "tier": "T2_plus_time",
+    "test_nation": "Scotland",
+    "n": 4104,
+    "base_rate": 0.4391,
+    "roc_auc": 0.5937,
+    "P@2pct_lift": 1.5092,
+    "level1_P@2pct_lift": 1.2183,
+    "mean_predicted": 0.2507,
+    "calibration_gap_points": -18.834
+  },
+  {
+    "tier": "T2_plus_time",
+    "test_nation": "Wales",
+    "n": 3003,
+    "base_rate": 0.3533,
+    "roc_auc": 0.5926,
+    "P@2pct_lift": 1.4848,
+    "level1_P@2pct_lift": 1.3363,
+    "mean_predicted": 0.2566,
+    "calibration_gap_points": -9.6717
+  },
+  {
+    "tier": "T3_plus_context",
+    "test_nation": "England",
+    "n": 94418,
+    "base_rate": 0.2519,
+    "roc_auc": 0.6031,
+    "P@2pct_lift": 1.7655,
+    "level1_P@2pct_lift": 1.3384,
+    "mean_predicted": 0.227,
+    "calibration_gap_points": -2.4888
+  },
+  {
+    "tier": "T3_plus_context",
+    "test_nation": "Scotland",
+    "n": 4104,
+    "base_rate": 0.4391,
+    "roc_auc": 0.5968,
+    "P@2pct_lift": 1.4543,
+    "level1_P@2pct_lift": 1.2183,
+    "mean_predicted": 0.2606,
+    "calibration_gap_points": -17.8504
+  },
+  {
+    "tier": "T3_plus_context",
+    "test_nation": "Wales",
+    "n": 3003,
+    "base_rate": 0.3533,
+    "roc_auc": 0.6088,
+    "P@2pct_lift": 1.4384,
+    "level1_P@2pct_lift": 1.3363,
+    "mean_predicted": 0.2657,
+    "calibration_gap_points": -8.7618
+  }
+]

@@ -1,0 +1,45 @@
+{
+  "resolution": 7,
+  "cells_analysed": 6110,
+  "min_exposure_mvkm": 20.0,
+  "fdr_alpha": 0.05,
+  "period_a": [
+    2021,
+    2022,
+    2023
+  ],
+  "period_b": [
+    2024,
+    2025
+  ],
+  "national_rate_a_per_mvkm": 0.043602286409800246,
+  "national_rate_b_per_mvkm": 0.04803856824125035,
+  "exposure_adjusted": {
+    "hotspots": 386,
+    "median_mvkm_in_hotspots": 124.92667025,
+    "rate_2024_25_inside_per_mvkm": 0.26268595531015176,
+    "rate_2024_25_outside_per_mvkm": 0.03392917028691325,
+    "rate_ratio_inside_vs_outside": 7.742186239416288,
+    "rate_ratio_ci95": [
+      6.944773428786604,
+      8.526813227939044
+    ],
+    "share_hot_again_in_2024_25": 0.883419689119171,
+    "share_of_all_cells_hot_in_2024_25": 0.06644844517184943,
+    "share_with_above_national_rate_in_2024_25": 0.9766839378238342
+  },
+  "naive_counts": {
+    "hotspots": 349,
+    "median_mvkm_in_hotspots": 149.0846515,
+    "rate_2024_25_inside_per_mvkm": 0.23187455343537028,
+    "rate_2024_25_outside_per_mvkm": 0.034577108658613694,
+    "rate_ratio_inside_vs_outside": 6.706013383730589,
+    "rate_ratio_ci95": [
+      6.019288564196253,
+      7.454352734257685
+    ],
+    "share_hot_again_in_2024_25": 0.8911174785100286,
+    "share_of_all_cells_hot_in_2024_25": 0.058428805237315876,
+    "share_with_above_national_rate_in_2024_25": 0.9598853868194842
+  }
+}
