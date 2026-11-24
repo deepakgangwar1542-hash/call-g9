@@ -18,18 +18,9 @@ import theme
 import views
 
 
-st.set_page_config(page_title="Call Severity Triage", page_icon="🚑", layout="wide")
+st.set_page_config(page_title="Call Severity Triage", page_icon=":material/emergency:", layout="wide",
+                   initial_sidebar_state="expanded")
 theme.inject()
-
-st.markdown(theme.hero(), unsafe_allow_html=True)
-st.markdown(
-    '<div class="safety-note"><span class="safety-dot"></span>'
-    '<span><strong>Decision support only.</strong> Use dispatcher judgement and established emergency-response protocols.</span></div>',
-    unsafe_allow_html=True,
-)
-
-dispatch_tab, pulse_tab, control_tab, capacity_tab, review_tab, health_tab = st.tabs(
-    ["Dispatch desk", "Pulse", "Control room", "Capacity planner", "Shift review", "Model health"])
 
 CONTEXT_FIELDS = {"light_condition": "f_light", "weather": "f_weather", "police_force": "opt_police_force",
                   "urban_or_rural_area": "opt_urban_or_rural_area", "road_surface_conditions": "opt_road_surface_conditions"}
@@ -92,9 +83,9 @@ def apply_intake() -> None:
     st.session_state["intake_found"] = (text, found)
 
 
-with dispatch_tab:
+def dispatch_desk() -> None:
     st.markdown(theme.page_intro(
-        "New call assessment", "Enter the five core conditions to generate a risk flag and log the assessment. Optional detail sharpens the score."
+        "Dispatch desk", "New call assessment. Enter the five core conditions to generate a risk flag and log the assessment. Optional detail sharpens the score."
     ), unsafe_allow_html=True)
 
     intake_col, result_col = st.columns([1.08, 0.92], gap="large")
@@ -279,10 +270,10 @@ with dispatch_tab:
             )
 
 
-with review_tab:
+def shift_review() -> None:
     calls = db.all_calls()
     st.markdown(theme.page_intro(
-        "Shift review", "Review recorded assessments, outcomes, and enhanced-response activity."
+        "Shift review", "Review recorded assessments, outcomes, and enhanced-response activity.", "Planning"
     ), unsafe_allow_html=True)
 
     total_calls = len(calls)
@@ -365,14 +356,66 @@ with review_tab:
         columns = [name for name in ["Call ID", "Logged", "Result", "Confidence", "Limit (mph)", "Enhanced response", "Actual outcome"] if name in display_calls.columns]
         st.dataframe(display_calls[columns], width="stretch", hide_index=True)
 
-with pulse_tab:
-    views.pulse()
+@st.cache_resource(show_spinner=False)
+def model_status() -> tuple[str, str]:
+    """Which scoring tier actually loads: the full model, the v1 fallback, or only the baseline estimate."""
+    import predict
+    try:
+        _, meta = predict._load_v2()
+        return "Operational", str(meta.get("model_version", "v2"))
+    except Exception:
+        pass
+    try:
+        _, meta = predict._load_v1()
+        return "Degraded", str(meta.get("model_version", "v1 fallback"))
+    except Exception:
+        return "Offline", "Baseline estimate only"
 
-with control_tab:
-    views.control_room()
 
-with capacity_tab:
-    views.capacity_planner()
-
-with health_tab:
+def model_health_page() -> None:
     views.model_health(db.all_calls())
+
+
+PAGES = {
+    "Operations": [
+        st.Page(dispatch_desk, title="Dispatch desk", icon=":material/call:", url_path="dispatch", default=True),
+        st.Page(views.pulse, title="Pulse", icon=":material/monitor_heart:", url_path="pulse"),
+        st.Page(views.control_room, title="Control room", icon=":material/radar:", url_path="control-room"),
+    ],
+    "Planning": [
+        st.Page(views.capacity_planner, title="Capacity planner", icon=":material/insights:", url_path="capacity"),
+        st.Page(shift_review, title="Shift review", icon=":material/fact_check:", url_path="shift-review"),
+    ],
+    "System": [
+        st.Page(model_health_page, title="Model health", icon=":material/memory:", url_path="model-health"),
+    ],
+}
+
+page = st.navigation([p for group in PAGES.values() for p in group], position="top")
+
+with st.sidebar:
+    st.markdown(theme.brand(), unsafe_allow_html=True)
+    for group, pages in PAGES.items():
+        st.markdown(theme.side_label(group), unsafe_allow_html=True)
+        for item in pages:
+            st.page_link(item, label=item.title, icon=item.icon)
+    state, version = model_status()
+    log = db.all_calls()
+    high = int((log["predicted_risk"] == "High risk").sum()) if not log.empty else 0
+    pending = int(log["actual_outcome"].isna().sum()) if not log.empty else 0
+    st.markdown(theme.side_label("System status"), unsafe_allow_html=True)
+    st.markdown(theme.status_card(state, [("Model", version), ("Calls logged", f"{len(log):,}"),
+                                          ("High-risk flags", f"{high:,}"), ("Outcomes pending", f"{pending:,}")]),
+                unsafe_allow_html=True)
+    st.markdown(theme.side_label("Help"), unsafe_allow_html=True)
+    with st.expander("How to use this tool"):
+        st.caption("Dispatch desk scores a new call. Pulse and Control room show where and when serious collisions are expected "
+                   "and replay a held-out 2025 shift. Capacity planner sets how many calls to escalate. Shift review records "
+                   "outcomes and exports the log. Model health shows accuracy, calibration, drift and fairness.")
+
+st.markdown(
+    '<div class="safety-note"><span class="safety-dot"></span>'
+    '<span><strong>Decision support only.</strong> Use dispatcher judgement and established emergency-response protocols.</span></div>',
+    unsafe_allow_html=True,
+)
+page.run()

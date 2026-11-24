@@ -12,7 +12,8 @@ import shift_sim
 import theme
 from common import HEX_PATH, OPTIONAL_LABELS, POLICE_FORCE, REPLAY_PATH, ROOT, V2_META_PATH
 
-RED, GREEN, AMBER, MUTED, TEXT = "#e11d2e", "#3ecf8e", "#f0bd5e", "#a7a7b2", "#e9e9ee"
+RED, GREEN, AMBER, MUTED, TEXT = "#f04452", "#32c98b", "#f5a623", "#9aa6b5", "#f1f4f8"
+GRID = "#1f2835"
 SHIFT_MINUTES = 480
 PULSE_CELLS_PATH = ROOT / "data/processed/pulse_cells.csv"
 PULSE_PROFILES_PATH = ROOT / "data/processed/pulse_profiles.csv"
@@ -31,9 +32,11 @@ BASE_RATE = _base_rate()
 
 def _style(fig: go.Figure, height: int = 340) -> go.Figure:
     fig.update_layout(template="plotly_dark", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=height,
-                      margin=dict(l=12, r=12, t=28, b=12), font=dict(color=TEXT, size=12), legend=dict(orientation="h", y=1.12, x=0))
-    fig.update_xaxes(gridcolor="#2a2a31", zerolinecolor="#2a2a31")
-    fig.update_yaxes(gridcolor="#2a2a31", zerolinecolor="#2a2a31")
+                      margin=dict(l=14, r=14, t=34, b=14), font=dict(family="Inter, system-ui, sans-serif", color=TEXT, size=12),
+                      legend=dict(orientation="h", y=1.12, x=0, font=dict(color=MUTED)),
+                      hoverlabel=dict(bgcolor="#18212d", bordercolor="#27313e", font=dict(color=TEXT, family="Inter, sans-serif")))
+    fig.update_xaxes(gridcolor=GRID, zerolinecolor=GRID, linecolor=GRID, tickfont=dict(color=MUTED))
+    fig.update_yaxes(gridcolor=GRID, zerolinecolor=GRID, linecolor=GRID, tickfont=dict(color=MUTED))
     return fig
 
 
@@ -114,7 +117,8 @@ def _live_body(shift: pd.DataFrame, hexes: pd.DataFrame, units: int, service: in
 def control_room() -> None:
     st.markdown(theme.page_intro(
         "Control room",
-        "Replay a shift of held-out 2025 collisions and compare risk-ranked dispatch with first come, first served, using the same scarce enhanced-response units."
+        "Replay a shift of held-out 2025 collisions and compare risk-ranked dispatch with first come, first served, using the same scarce enhanced-response units.",
+        "Operations"
     ), unsafe_allow_html=True)
     if not (REPLAY_PATH.exists() and HEX_PATH.exists()):
         _missing("The replay data")
@@ -206,7 +210,8 @@ def _pulse_body(cells: pd.DataFrame, shares: dict, weekly: np.ndarray, ceiling: 
                         map_style="dark", tooltip={"text": "Expected serious/fatal per year in this slot: {label}"})
         st.pydeck_chart(deck, height=470)
     with curve_col:
-        fig = go.Figure(go.Scatter(x=list(range(168)), y=weekly, mode="lines", line=dict(color=RED, width=2), name="Expected"))
+        fig = go.Figure(go.Scatter(x=list(range(168)), y=weekly, mode="lines", line=dict(color=RED, width=2, shape="spline"),
+                                   fill="tozeroy", fillcolor="rgba(240,68,82,0.14)", name="Expected"))
         fig.add_vline(x=how, line_color=AMBER, line_width=2)
         fig.update_xaxes(title=None, tickmode="array", tickvals=[d * 24 for d in range(7)], ticktext=[d[:3] for d in DAYS])
         fig.update_yaxes(title="Serious/fatal per year, all mapped cells")
@@ -252,7 +257,8 @@ def pulse() -> None:
 def capacity_planner() -> None:
     st.markdown(theme.page_intro(
         "Capacity planner",
-        "Choose how many calls to escalate. The curve shows the trade-off between reaching serious calls and spending enhanced responses, on held-out 2025 data."
+        "Choose how many calls to escalate. The curve shows the trade-off between reaching serious calls and spending enhanced responses, on held-out 2025 data.",
+        "Planning"
     ), unsafe_allow_html=True)
     if not REPLAY_PATH.exists():
         _missing("The replay data")
@@ -275,7 +281,8 @@ def capacity_planner() -> None:
 
     left, right = st.columns(2, gap="large")
     with left:
-        fig = go.Figure(go.Scatter(x=curve.flag_share * 100, y=curve.net_benefit, mode="lines", line=dict(color=RED, width=3)))
+        fig = go.Figure(go.Scatter(x=curve.flag_share * 100, y=curve.net_benefit, mode="lines", line=dict(color=RED, width=3),
+                                   fill="tozeroy", fillcolor="rgba(240,68,82,0.12)"))
         fig.add_trace(go.Scatter(x=[best.flag_share * 100], y=[best.net_benefit], mode="markers", marker=dict(color=GREEN, size=12), name="Best"))
         fig.update_xaxes(title="Share of calls escalated (%)")
         fig.update_yaxes(title="Net benefit per 1,000 calls")
@@ -296,7 +303,8 @@ def capacity_planner() -> None:
 def model_health(calls: pd.DataFrame) -> None:
     st.markdown(theme.page_intro(
         "Model health",
-        "Accuracy, calibration, drift against live calls, and a fairness check across groups. Everything here is out-of-time: models never saw the year they are scored on."
+        "Accuracy, calibration, drift against live calls, and a fairness check across groups. Everything here is out-of-time: models never saw the year they are scored on.",
+        "System"
     ), unsafe_allow_html=True)
     try:
         meta = json.loads(V2_META_PATH.read_text())
