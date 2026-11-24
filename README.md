@@ -12,6 +12,8 @@ Dataset pehle se `data/raw/` me hai (STATS19 2023 collisions, 104,258 rows).
     python -m pytest -q          # MVP + Phase 1 regression tests
     streamlit run app.py         # Steps 13-15: prediction pipeline + UI + call logging (calls.db)
 
+Landing page: static site in `landing/` (3D parallax product tour). Open `landing/index.html` directly, or `docker compose up landing` and visit http://localhost:8080. Its "Open desk" buttons point at `http://localhost:8501`; change the `desk-url` meta tag or append `?desk=<url>` to retarget them.
+
 Settings: `common.py` me K_DEFAULT (shift capacity). The default cleaned data excludes records on/after 17-Sep-2023; the explicit alternate command above produces the all-rows sensitivity dataset.
 
 ## Sprint I (27 Sep) status — MVP done
