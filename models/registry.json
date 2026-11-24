@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "models": [
+    {
+      "id": "v2",
+      "role": "primary",
+      "version": "LightGBM-T4_plus_force-2021_2025-202611180414",
+      "artifacts": {
+        "model": {
+          "path": "models/model_v2.joblib",
+          "sha256": "0347ef12ff190ac2bbd1ceed7f4ff65bf88e9b1cc27e745f1138328b705b2e29"
+        },
+        "meta": {
+          "path": "models/model_v2_meta.json",
+          "sha256": "8c494b336c30a76daeba5d03dcd430f0e52217be8e2aa27d5da394d42158a497"
+        },
+        "calibrator": {
+          "path": "models/calibrator_v2.joblib",
+          "sha256": "c0cb67b8d3ddb247c58717bc7ff8d4c1bc192880b9de836645d0187c3774b304"
+        }
+      },
+      "features": [
+        "road_type",
+        "speed_limit",
+        "weather",
+        "light_condition",
+        "junction_detail",
+        "hour",
+        "day_of_week",
+        "month",
+        "urban_or_rural_area",
+        "first_road_class",
+        "junction_control",
+        "pedestrian_crossing",
+        "road_surface_conditions",
+        "carriageway_hazards",
+        "police_force"
+      ],
+      "feature_schema_version": "fs-b94cc4ac410e",
+      "threshold": 0.47168181578402996,
+      "approval_status": "sandbox_unreviewed",
+      "approved_by": null,
+      "training_window": {
+        "deployed_artifact_train_years": [
+          2021,
+          2022,
+          2023,
+          2024,
+          2025
+        ],
+        "pre_test_model_train_years": [
+          2021,
+          2022,
+          2023,
+          2024
+        ]
+      },
+      "evaluation": {
+        "test_year": 2025,
+        "applies_to": "pre-test model trained on 2021-2024, not the deployed artifact",
+        "metrics": {
+          "test_year": 2025.0,
+          "n_features": 15.0,
+          "n": 101525.0,
+          "base_rate": 0.2624378231962571,
+          "roc_auc": 0.6272953822356755,
+          "pr_auc": 0.3723615964482706,
+          "P@2pct": 0.5544066962087641,
+          "P@2pct_lift": 2.112525890729424,
+          "P@5pct": 0.48906834744928107,
+          "P@5pct_lift": 1.8635589241400787,
+          "P@300": 0.63,
+          "P@2pct_ci_low": 0.5317331363860167,
+          "P@2pct_ci_high": 0.5750861644510094,
+          "diff_vs_level1_mean": 0.19029870343016575,
+          "diff_vs_level1_ci_low": 0.1597612013786312,
+          "diff_vs_level1_ci_high": 0.21767602166420477,
+          "ci_excludes_zero": 1.0
+        },
+        "brier": 0.18604588148991477,
+        "brier_constant_forecast": 0.194212970638291,
+        "protocol": "temporal: select on validation year, single final test on latest year, rolling backtest"
+      },
+      "data_source": "DfT STATS19 road casualty statistics, collisions 2021-2025 (historic recorded collisions, not call recordings)",
+      "intended_use": "Research and training sandbox. Decision support for ranking calls; never an autonomous decision.",
+      "known_limitations": [
+        "Modest discrimination (ROC AUC 0.63 on the 2025 out-of-time test of the pre-test model)",
+        "Deployed artifact was refit on 2021-2025 and has no out-of-time evaluation of its own",
+        "Threshold 0.4717 was set on the pre-test model's 2025 scores",
+        "Trained on recorded collisions with outcomes, which may differ from the population of incoming calls",
+        "Police force is partly a proxy for local severity-recording practice"
+      ],
+      "caveats": [
+        "A low ranking does not mean a call is safe or non-urgent"
+      ],
+      "rollback_to": "v1"
+    },
+    {
+      "id": "v1",
+      "role": "fallback",
+      "version": "RandomForest-phase1-202611171549",
+      "artifacts": {
+        "model": {
+          "path": "models/best_model.joblib",
+          "sha256": "d2adf75f990ca62b030f7e98fe5d809bb85fbd76c17ca4d122551d173ef78275"
+        },
+        "meta": {
+          "path": "models/best_model_meta.json",
+          "sha256": "0fb4d01c603fbf2aedb4f1f94640490f7634d5fb85fc70436f3d0c6f666f06fe"
+        }
+      },
+      "features": [
+        "road_type",
+        "speed_limit",
+        "weather",
+        "light_condition",
+        "junction_detail"
+      ],
+      "feature_schema_version": "fs-ed2cbda6b9a8",
+      "threshold": 0.6602721510811348,
+      "approval_status": "sandbox_unreviewed",
+      "approved_by": null,
+      "training_window": {
+        "deployed_artifact_train_years": [
+          2023
+        ]
+      },
+      "evaluation": {
+        "test_year": 2023,
+        "metrics": {
+          "n": 14746,
+          "base_rate": 0.24006510240065101,
+          "roc_auc": 0.5891882854322392,
+          "pr_auc": 0.3017382606080148,
+          "P@300": 0.3825
+        }
+      },
+      "data_source": "DfT STATS19 road casualty statistics, collisions 2023",
+      "intended_use": "Optional degraded fallback, disabled by default (TRIAGE_ALLOW_V1_FALLBACK).",
+      "known_limitations": [
+        "Five features only",
+        "Weak discrimination (ROC AUC 0.59)"
+      ],
+      "caveats": [],
+      "rollback_to": null
+    }
+  ]
+}

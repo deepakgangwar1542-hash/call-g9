@@ -87,6 +87,7 @@ def dispatch_desk() -> None:
     st.markdown(theme.page_intro(
         "Dispatch desk", "New call assessment. Enter the five core conditions to generate a risk flag and log the assessment. Optional detail sharpens the score."
     ), unsafe_allow_html=True)
+    theme.scene_3d("terrain", 170, "3D risk surface · illustrative")
 
     intake_col, result_col = st.columns([1.08, 0.92], gap="large")
     with intake_col:
@@ -154,7 +155,7 @@ def dispatch_desk() -> None:
                 started = time.perf_counter()
                 prediction = predict_call(call)
                 elapsed_ms = (time.perf_counter() - started) * 1000
-                call_id = db.log_call(validate(call), prediction)
+                call_id = db.log_call(validate(call), prediction, operator_ref="streamlit-desk", source_type="manual")
                 st.session_state["last"] = (call_id, prediction, elapsed_ms)
                 st.session_state["last_call"] = call
                 st.session_state.pop("err", None)
@@ -172,6 +173,10 @@ def dispatch_desk() -> None:
             st.markdown(theme.verdict_card(prediction, elapsed_ms, call_id), unsafe_allow_html=True)
             st.markdown(theme.calibration_card(prediction.get("calibration"), views.BASE_RATE), unsafe_allow_html=True)
             st.markdown(theme.reasons_card(prediction.get("reasons", [])), unsafe_allow_html=True)
+            if prediction.get("advisory"):
+                st.caption(prediction["advisory"])
+            if prediction.get("assessment_state") == "degraded" and prediction.get("message"):
+                st.warning(prediction["message"])
             if prediction.get("calibration") and "last_call" in st.session_state:
                 try:
                     questions = insights.ask_next(st.session_state["last_call"])
@@ -275,6 +280,7 @@ def shift_review() -> None:
     st.markdown(theme.page_intro(
         "Shift review", "Review recorded assessments, outcomes, and enhanced-response activity.", "Planning"
     ), unsafe_allow_html=True)
+    theme.scene_3d("bars", 170, "3D dispatcher activity · illustrative")
 
     total_calls = len(calls)
     high_count = int((calls["predicted_risk"] == "High risk").sum()) if total_calls else 0

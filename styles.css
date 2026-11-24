@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&family=Space+Grotesk:wght@600;700&display=swap");
 
 :root {
   color-scheme: dark;
@@ -324,6 +324,19 @@ button:focus-visible, a:focus-visible, input:focus-visible, [tabindex="0"]:focus
 [data-testid="stSlider"] [role="slider"] { box-shadow: 0 0 0 4px #f0445233; }
 
 [data-testid="stMain"] [data-testid="stVerticalBlock"] > div { animation: reveal .3s var(--ease) both; }
+
+/* ---------------------------------------------------------------- display and label typography */
+.page-title, .verdict-big, .tile-val, .pk-value, .cal-big b, .brand-name, .placeholder-title, [data-testid="stMetricValue"] {
+  font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
+}
+.side-label, .verdict-head, .why-head, .pk-label, .chip, .meta-chip, .crumbs, .tile-label, .section-title {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+.tile-label, .section-title, .crumbs { letter-spacing: .02em; }
+[data-testid="stMain"] iframe {
+  display: block; width: 100%; margin: 0 0 1rem;
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--canvas);
+}
 
 @media (max-width: 760px) {
   .block-container { padding: .8rem .75rem 2rem; }

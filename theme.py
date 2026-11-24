@@ -21,6 +21,95 @@ _ICONS = {
 }
 
 
+_THREE_URL = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+
+_SCENE_JS = """
+const kind = document.body.dataset.kind;
+const canvas = document.getElementById('c');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (typeof THREE !== 'undefined') try {
+  const W = () => window.innerWidth, H = () => window.innerHeight;
+  const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(W(), H());
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(42, W() / H(), 0.1, 100);
+  const RED = 0xf04452, CORAL = 0xff6b70, GREEN = 0x32c98b, SLATE = 0x3a4757;
+  const box = (w, h, d, color, wire) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color, wireframe: !!wire }));
+  const ring = (r, opacity, width = 0.05) => {
+    const m = new THREE.Mesh(new THREE.RingGeometry(r - width, r, 64), new THREE.MeshBasicMaterial({ color: RED, side: THREE.DoubleSide, transparent: true, opacity }));
+    m.rotation.x = -Math.PI / 2; scene.add(m);
+  };
+  const pulsing = [];
+  let sway = 0.3, spin = 0, speed = 0.015;
+  if (kind === 'terrain') {
+    cam.position.set(5.5, 5.5, 6.5); cam.lookAt(0, 0.5, 0);
+    for (let x = -3; x <= 3; x++) for (let z = -3; z <= 3; z++) {
+      const d = Math.hypot(x, z), h = Math.max(0.25, 2.4 - d * 0.45);
+      const m = box(0.55, h, 0.55, h > 1.3 ? RED : SLATE, h <= 1.3);
+      m.position.set(x * 0.75, h / 2, z * 0.75); m.userData = { amp: 0.18, phase: d * 0.7 };
+      scene.add(m); pulsing.push(m);
+    }
+    sway = 0.35;
+  } else if (kind === 'radar') {
+    cam.fov = 45; cam.position.set(0, 7, 11); cam.lookAt(0, 0.5, 0);
+    [1.5, 2.8, 4.1, 5.4].forEach((r, i) => ring(r, 0.85 - i * 0.15, 0.06));
+    for (let i = 0; i < 18; i++) {
+      const h = 0.6 + (i % 6) * 0.55, a = (i / 18) * Math.PI * 2, r = 0.8 + (i % 3) * 0.9;
+      const m = box(0.28, h, 0.28, i % 2 ? CORAL : RED);
+      m.position.set(Math.cos(a) * r, h / 2, Math.sin(a) * r); m.userData = { amp: 0.3, phase: i * 0.5, base: 0.75 };
+      scene.add(m); pulsing.push(m);
+    }
+    sway = 0; spin = 0.2; speed = 0.02;
+  } else if (kind === 'network') {
+    cam.fov = 45; cam.position.set(0, 8, 12); cam.lookAt(0, 0, 0);
+    scene.add(new THREE.GridHelper(20, 20, 0x27313e, 0x18212d));
+    [1.8, 3.6, 5.4].forEach((r) => ring(r, 0.45, 0.04));
+    for (let i = 0; i < 12; i++) {
+      const h = 0.5 + (i % 4) * 0.5, m = box(0.3, h, 0.3, i % 3 === 0 ? RED : GREEN);
+      m.position.set((i - 5.5) * 1.1, h / 2, Math.sin(i) * 3); scene.add(m);
+    }
+    sway = 0.3; speed = 0.012;
+  } else {
+    cam.position.set(5, 5, 6); cam.lookAt(0, 0.8, 0);
+    for (let x = -2; x <= 2; x++) for (let z = -1; z <= 1; z++) {
+      const h = 0.7 + Math.abs(x + z) * 0.45, m = box(0.65, h, 0.65, (x + z) % 2 === 0 ? RED : SLATE);
+      m.position.set(x * 1.1, h / 2, z * 1.1); scene.add(m);
+    }
+    sway = 0.35; speed = 0.015;
+  }
+  let t = 0;
+  const draw = () => {
+    scene.rotation.y = spin ? t * spin : Math.sin(t * 0.5) * sway;
+    pulsing.forEach((m) => { m.scale.y = (m.userData.base ?? 0.85) + Math.sin(t * 1.5 + m.userData.phase) * m.userData.amp; });
+    renderer.render(scene, cam);
+  };
+  const loop = () => { t += speed; draw(); if (!reduce) requestAnimationFrame(loop); };
+  addEventListener('resize', () => { renderer.setSize(W(), H()); cam.aspect = W() / H(); cam.updateProjectionMatrix(); draw(); });
+  loop();
+} catch (e) {}
+"""
+
+
+def scene_3d(kind: str, height: int = 260, label: str = "") -> None:
+    """Decorative three.js scene (terrain, radar, network or bars). Illustrative only: it carries no data."""
+    caption = f'<span class="cap">{escape(label)}</span>' if label else ""
+    page = (
+        '<!DOCTYPE html><html><head><meta charset="utf-8"><style>'
+        'html,body{margin:0;height:100%;overflow:hidden;background:#090c11}'
+        'canvas{display:block;width:100%;height:100%}'
+        '.cap{position:absolute;left:12px;bottom:10px;color:#9aa6b5;font:600 10px/14px "JetBrains Mono",ui-monospace,monospace;'
+        'letter-spacing:.08em;text-transform:uppercase}'
+        f'</style></head><body data-kind="{escape(kind)}"><canvas id="c" aria-hidden="true"></canvas>{caption}'
+        f'<script src="{_THREE_URL}"></script><script>{_SCENE_JS}</script></body></html>'
+    )
+    if hasattr(st, "iframe"):
+        st.iframe(page, height=height)
+    else:
+        import streamlit.components.v1 as components
+        components.html(page, height=height)
+
+
 def _svg(name: str) -> str:
     return f'<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">{_ICONS[name]}</svg>'
 
@@ -73,10 +162,14 @@ def section_title(text: str, icon: str = "list") -> str:
 
 def verdict_card(pred: dict, ms: float, cid: str) -> str:
     estimate = bool(pred.get("is_estimate"))
+    unavailable = pred.get("assessment_state") == "unavailable"
     high = pred["risk_flag"] == "High risk" and not estimate
     css_class = "verdict-estimate" if estimate else "verdict-high" if high else "verdict-low"
-    label = "UNSCORED" if estimate else "HIGH RISK" if high else "LOW RISK"
-    if estimate:
+    label = "ASSESSMENT UNAVAILABLE" if unavailable else "UNSCORED" if estimate else "HIGH RISK" if high else "LOW RISK"
+    if unavailable:
+        code = escape(str(pred.get("reason_code") or "UNKNOWN"))
+        recommendation = f"{escape(pred.get('message') or '')} (reason: {code})"
+    elif estimate:
         recommendation = "The model is unavailable. This baseline estimate is not a scored risk classification; follow dispatcher judgement and established protocols."
     elif high:
         recommendation = "Enhanced response recommended. Apply dispatcher judgement and local protocol."
@@ -91,9 +184,10 @@ def verdict_card(pred: dict, ms: float, cid: str) -> str:
             f'<div class="meter-val">{pct:.1f}% confidence</div></div>'
         )
     else:
+        chip = "No risk level produced" if unavailable else "Fallback estimate · model prediction unavailable"
         meter = (
             '<div style="margin:.35rem 0 .85rem"><span class="estimate-chip">'
-            f'{_svg("alert")} Fallback estimate · model prediction unavailable</span></div>'
+            f'{_svg("alert")} {chip}</span></div>'
         )
     return f"""
     <section class="verdict {css_class}" aria-label="Triage result: {label}">

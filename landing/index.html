@@ -1,198 +1,692 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" class="dark">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0a0d12">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#090C11">
   <meta name="desk-url" content="http://localhost:8501">
-  <title>Call Severity Triage — Dispatcher decision-support</title>
-  <meta name="description" content="Model-assisted severity triage for traffic incident calls. Rank incoming calls by risk, see live hotspots, plan capacity and review every shift.">
+  <meta name="description" content="Model-assisted severity triage for traffic incident calls. Five call-time facts in, a calibrated risk flag out, built on 104,258 UK STATS19 collisions.">
+  <title>Call Severity Triage — 3D Dispatch Overview</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">
+    globalThis.tailwind = globalThis.tailwind || {};
+    globalThis.tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'primary': '#B8001D',
+            'on-primary': '#FFFFFF',
+            'primary-container': '#E11D2E',
+            'on-primary-container': '#FFFFFF',
+            'signal-red': '#F04452',
+            'signal-coral': '#FF6B70',
+            'status-ok': '#32C98B',
+            'on-status-ok': '#062619',
+            'status-warn': '#F5A623',
+            'on-status-warn': '#241600',
+            'background': '#090C11',
+            'on-background': '#F1F4F8',
+            'surface': '#0E131B',
+            'on-surface': '#F1F4F8',
+            'surface-container-low': '#131A24',
+            'surface-container': '#18212D',
+            'surface-container-high': '#1E2835',
+            'on-surface-variant': '#9AA6B5',
+            'outline': '#27313E',
+            'outline-variant': '#1D2530',
+          },
+          borderRadius: {
+            'sm': '4px',
+            'DEFAULT': '8px',
+            'md': '12px',
+            'lg': '16px',
+            'full': '9999px',
+          },
+          spacing: {
+            'gutter-xs': '4px',
+            'gutter-sm': '8px',
+            'gutter-md': '16px',
+            'gutter-lg': '24px',
+            'gutter-xl': '32px',
+            'section': '64px',
+            'page-margin': '24px',
+          },
+          fontFamily: {
+            'display': ['"Space Grotesk"', 'sans-serif'],
+            'headline': ['"Space Grotesk"', 'sans-serif'],
+            'title': ['"Inter"', 'sans-serif'],
+            'body': ['"Inter"', 'sans-serif'],
+            'label': ['"JetBrains Mono"', 'monospace'],
+          },
+          fontSize: {
+            'display-lg': ['64px', { lineHeight: '68px', letterSpacing: '-2.2px', fontWeight: '700' }],
+            'display-lg-mobile': ['32px', { lineHeight: '36px', letterSpacing: '-1.0px', fontWeight: '700' }],
+            'headline-lg': ['40px', { lineHeight: '44px', letterSpacing: '-1.4px', fontWeight: '700' }],
+            'headline-lg-mobile': ['28px', { lineHeight: '32px', letterSpacing: '-0.8px', fontWeight: '700' }],
+            'headline-md': ['24px', { lineHeight: '30px', letterSpacing: '-0.5px', fontWeight: '700' }],
+            'title-lg': ['18px', { lineHeight: '24px', letterSpacing: '-0.2px', fontWeight: '700' }],
+            'title-md': ['15px', { lineHeight: '21px', letterSpacing: '-0.1px', fontWeight: '600' }],
+            'body-lg': ['16px', { lineHeight: '25px', letterSpacing: '0px', fontWeight: '400' }],
+            'body-md': ['14px', { lineHeight: '21px', letterSpacing: '0px', fontWeight: '400' }],
+            'body-sm': ['12px', { lineHeight: '18px', letterSpacing: '0px', fontWeight: '500' }],
+            'label-lg': ['14px', { lineHeight: '20px', letterSpacing: '0.1px', fontWeight: '600' }],
+            'label-md': ['11px', { lineHeight: '16px', letterSpacing: '1.1px', fontWeight: '600' }],
+            'label-sm': ['10px', { lineHeight: '14px', letterSpacing: '0.8px', fontWeight: '500' }],
+          },
+          transitionDuration: { 'state-change': '150ms' },
+          transitionTimingFunction: { 'state-change': 'cubic-bezier(0.23, 1, 0.32, 1)' },
+        },
+      },
+    };
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet">
+  <style>
+    html { scroll-behavior: smooth; }
+    .material-symbols-outlined { display: inline-block; width: 1em; height: 1em; line-height: 1 !important; box-sizing: content-box; overflow: hidden; white-space: nowrap; direction: ltr; vertical-align: middle; }
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+    :focus-visible { outline: 2px solid #FF6B70; outline-offset: 2px; }
+    section[id] { scroll-margin-top: 88px; }
+    @keyframes scan-sweep {
+      0%, 10% { transform: translateY(-24px); opacity: 0; }
+      25%, 75% { opacity: 0.9; }
+      90%, 100% { transform: translateY(260px); opacity: 0; }
+    }
+    .scanner-line { animation: scan-sweep 4.2s linear infinite; }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .scanner-line { animation: none; opacity: 0.4; }
+    }
+  </style>
 </head>
-<body>
-  <div class="floor" aria-hidden="true">
-    <div class="floor-grid" data-depth="0.15"></div>
-    <div class="glints" data-depth="0.35"></div>
+<body class="bg-background text-on-background font-body min-h-screen relative overflow-x-hidden">
+  <canvas id="bg3d" aria-hidden="true" class="fixed inset-0 w-full h-full pointer-events-none z-0 opacity-85"></canvas>
+  <div aria-hidden="true" class="fixed inset-0 z-10 pointer-events-none bg-gradient-to-b from-background/40 via-background/65 to-background"></div>
+
+  <div class="relative z-20 min-h-screen flex flex-col">
+    <header class="sticky top-gutter-sm z-30 mx-auto w-full max-w-6xl px-gutter-md pt-gutter-sm">
+      <div class="flex items-center justify-between gap-gutter-md px-gutter-md py-gutter-sm rounded-md bg-surface/90 border border-outline backdrop-blur-md">
+        <a href="#top" class="flex items-center gap-gutter-sm" aria-label="Call Severity Triage home">
+          <span class="inline-block w-2.5 h-2.5 rounded-full bg-signal-red"></span>
+          <span class="font-label text-label-md text-on-surface uppercase tracking-widest">CALL / TRIAGE</span>
+        </a>
+
+        <nav aria-label="Sections" class="hidden md:flex items-center gap-gutter-lg">
+          <a href="#problem" class="font-body text-body-sm text-on-surface-variant hover:text-on-surface transition-colors duration-state-change">Problem</a>
+          <a href="#how" class="font-body text-body-sm text-on-surface-variant hover:text-on-surface transition-colors duration-state-change">How it works</a>
+          <a href="#demo" class="font-body text-body-sm text-on-surface-variant hover:text-on-surface transition-colors duration-state-change">Live demo</a>
+          <a href="#results" class="font-body text-body-sm text-on-surface-variant hover:text-on-surface transition-colors duration-state-change">Results</a>
+          <a href="http://localhost:8501/control-room" data-desk-link data-desk-path="/control-room" class="font-body text-body-sm text-on-surface-variant hover:text-on-surface transition-colors duration-state-change">Control room</a>
+          <a href="http://localhost:8501/shift-review" data-desk-link data-desk-path="/shift-review" class="font-body text-body-sm text-on-surface-variant hover:text-on-surface transition-colors duration-state-change">Shift review</a>
+        </nav>
+
+        <a href="http://localhost:8501" data-desk-link data-desk-path="" class="inline-flex items-center justify-center gap-gutter-xs min-h-10 px-gutter-md py-gutter-xs rounded bg-primary-container text-on-primary-container border border-signal-coral hover:bg-signal-red transition-colors duration-state-change">
+          <span class="font-title text-label-lg">Open dispatch desk</span>
+          <span class="material-symbols-outlined text-title-md" aria-hidden="true">arrow_outward</span>
+        </a>
+      </div>
+    </header>
+
+    <div class="mx-auto w-full max-w-6xl px-gutter-md pt-gutter-md">
+      <div role="group" aria-label="3D background scene" class="inline-flex flex-wrap items-center gap-gutter-xs p-gutter-xs rounded-md bg-surface-container-low/90 border border-outline backdrop-blur-md">
+        <span class="font-label text-label-sm text-on-surface-variant uppercase px-gutter-sm">3D Scene:</span>
+        <button type="button" data-scene-mode="map" aria-pressed="true" class="scene-btn px-gutter-sm py-gutter-xs rounded bg-primary-container text-on-primary-container font-label text-label-sm uppercase cursor-pointer transition-colors duration-state-change">UK Dispatch Map</button>
+        <button type="button" data-scene-mode="pipeline" aria-pressed="false" class="scene-btn px-gutter-sm py-gutter-xs rounded bg-surface-container text-on-surface-variant hover:text-on-surface font-label text-label-sm uppercase cursor-pointer transition-colors duration-state-change">5-Input Pipeline</button>
+        <button type="button" data-scene-mode="terrain" aria-pressed="false" class="scene-btn px-gutter-sm py-gutter-xs rounded bg-surface-container text-on-surface-variant hover:text-on-surface font-label text-label-sm uppercase cursor-pointer transition-colors duration-state-change">Speed-Risk Terrain</button>
+      </div>
+    </div>
+
+    <main id="top" class="flex-1 mx-auto w-full max-w-6xl px-gutter-md py-gutter-xl flex flex-col gap-section">
+      <section id="parallaxStage" aria-labelledby="hero-title" class="relative rounded-md bg-surface-container-low/90 border border-outline overflow-hidden min-h-80 flex items-center justify-center p-gutter-lg" style="perspective: 1100px;">
+        <canvas id="heroEmblem3d" aria-hidden="true" class="absolute inset-0 w-full h-full pointer-events-none opacity-40"></canvas>
+        <div id="parallaxCard" class="relative z-10 flex flex-col items-center text-center gap-gutter-sm transition-transform duration-state-change ease-state-change" style="transform-style: preserve-3d;">
+          <div class="w-20 h-20 rounded-full border-2 border-signal-red bg-surface/90 flex items-center justify-center" style="transform: translateZ(48px);">
+            <span class="material-symbols-outlined text-headline-lg text-signal-red" aria-hidden="true">warning</span>
+          </div>
+          <span class="font-label text-label-md text-signal-coral uppercase" style="transform: translateZ(32px);">3D Parallax Telemetry · STATS19 2021–2025</span>
+          <h1 id="hero-title" class="font-display text-display-lg-mobile md:text-display-lg text-on-surface text-balance" style="transform: translateZ(64px);">
+            Call Severity <span class="text-signal-red">Triage</span>
+          </h1>
+          <p class="font-body text-body-lg text-on-surface-variant max-w-prose text-pretty" style="transform: translateZ(24px);">
+            Five call-time facts in. A calibrated risk flag out. Move your cursor or scroll for 3D depth.
+          </p>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 lg:grid-cols-12 gap-gutter-xl items-center">
+        <div class="lg:col-span-7 p-gutter-lg rounded-md bg-surface-container-low/85 border border-outline backdrop-blur-md flex flex-col gap-gutter-lg">
+          <div class="flex items-center gap-gutter-sm">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-signal-red"></span>
+            <span class="font-label text-label-md text-on-surface-variant uppercase">Dispatcher decision support</span>
+          </div>
+          <h2 class="font-headline text-headline-lg-mobile md:text-headline-lg text-on-surface text-balance">
+            Which call needs the <span class="text-signal-red">bigger response?</span>
+          </h2>
+          <p class="font-body text-body-lg text-on-surface-variant max-w-prose text-pretty">
+            Built on 104,258 UK STATS19 road collisions to help dispatchers rank enhanced responses consistently in about a second.
+          </p>
+          <div class="flex flex-wrap items-center gap-gutter-md">
+            <a href="http://localhost:8501" data-desk-link data-desk-path="" class="inline-flex items-center justify-center gap-gutter-sm min-h-11 px-gutter-md py-gutter-sm rounded bg-primary-container text-on-primary-container border border-signal-coral hover:bg-signal-red transition-colors duration-state-change">
+              <span class="material-symbols-outlined text-title-lg" aria-hidden="true">emergency</span>
+              <span class="font-title text-label-lg">Launch dispatch desk</span>
+            </a>
+            <a href="#demo" class="inline-flex items-center justify-center gap-gutter-sm min-h-11 px-gutter-md py-gutter-sm rounded bg-surface-container text-on-surface border border-outline hover:bg-surface-container-high transition-colors duration-state-change">
+              <span class="font-title text-label-lg">Try 5-input demo</span>
+            </a>
+          </div>
+        </div>
+
+        <article aria-label="Illustrative call verdict" class="lg:col-span-5 p-gutter-lg rounded-md bg-surface-container-low/95 border border-outline backdrop-blur-md relative overflow-hidden flex flex-col gap-gutter-md">
+          <div aria-hidden="true" class="scanner-line absolute left-0 right-0 h-0.5 bg-signal-red pointer-events-none"></div>
+          <header class="flex items-center justify-between border-b border-outline-variant pb-gutter-sm">
+            <span class="font-label text-label-md text-on-surface-variant uppercase">CALL / 7F-1028</span>
+            <span class="font-label text-label-sm text-signal-red uppercase">Illustrative</span>
+          </header>
+          <dl class="flex flex-col divide-y divide-outline-variant">
+            <div class="py-gutter-sm flex items-center justify-between gap-gutter-md">
+              <dt class="font-label text-label-sm text-on-surface-variant uppercase">Road</dt>
+              <dd class="font-body text-body-md text-on-surface">Single carriageway</dd>
+            </div>
+            <div class="py-gutter-sm flex items-center justify-between gap-gutter-md">
+              <dt class="font-label text-label-sm text-on-surface-variant uppercase">Limit</dt>
+              <dd class="font-body text-body-md text-on-surface tabular-nums">60 MPH</dd>
+            </div>
+            <div class="py-gutter-sm flex items-center justify-between gap-gutter-md">
+              <dt class="font-label text-label-sm text-on-surface-variant uppercase">Weather</dt>
+              <dd class="font-body text-body-md text-on-surface">Fine, no high winds</dd>
+            </div>
+            <div class="py-gutter-sm flex items-center justify-between gap-gutter-md">
+              <dt class="font-label text-label-sm text-on-surface-variant uppercase">Light</dt>
+              <dd class="font-body text-body-md text-on-surface">Daylight</dd>
+            </div>
+            <div class="py-gutter-sm flex items-center justify-between gap-gutter-md">
+              <dt class="font-label text-label-sm text-on-surface-variant uppercase">Junction</dt>
+              <dd class="font-body text-body-md text-on-surface">Not at junction</dd>
+            </div>
+          </dl>
+          <div class="pt-gutter-sm flex items-center gap-gutter-md">
+            <div class="w-20 h-20 rounded-full border-4 border-signal-red bg-surface flex items-center justify-center shrink-0">
+              <span class="font-headline text-headline-md text-on-surface tabular-nums">38%</span>
+            </div>
+            <div class="flex flex-col gap-gutter-xs">
+              <span class="inline-flex w-fit px-gutter-sm py-gutter-xs rounded-full bg-primary-container text-on-primary-container font-label text-label-sm uppercase">High risk</span>
+              <p class="font-body text-body-sm text-on-surface-variant">Enhanced response recommended · LightGBM T4_plus_force</p>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section aria-label="Project facts" class="grid grid-cols-1 md:grid-cols-3 rounded-md bg-surface-container-low/90 border border-outline divide-y md:divide-y-0 md:divide-x divide-outline">
+        <div class="p-gutter-lg flex flex-col gap-gutter-xs">
+          <span class="font-headline text-headline-md text-on-surface tabular-nums">104,258</span>
+          <span class="font-label text-label-md text-on-surface-variant uppercase">Collisions analysed (2021–2025)</span>
+        </div>
+        <div class="p-gutter-lg flex flex-col gap-gutter-xs">
+          <span class="font-headline text-headline-md text-on-surface tabular-nums">~1 s</span>
+          <span class="font-label text-label-md text-on-surface-variant uppercase">Per risk flag</span>
+        </div>
+        <div class="p-gutter-lg flex flex-col gap-gutter-xs">
+          <span class="font-headline text-headline-md text-on-surface tabular-nums">5</span>
+          <span class="font-label text-label-md text-on-surface-variant uppercase">Call-time inputs</span>
+        </div>
+      </section>
+
+      <section id="problem" class="grid grid-cols-1 lg:grid-cols-2 gap-gutter-xl items-center">
+        <div class="p-gutter-lg rounded-md bg-surface-container-low/90 border border-outline flex flex-col gap-gutter-md">
+          <span class="font-label text-label-md text-on-surface-variant uppercase">The problem</span>
+          <h2 class="font-headline text-headline-lg-mobile md:text-headline-lg text-on-surface text-balance">Response capacity is fixed. Calls are not.</h2>
+          <p class="font-body text-body-md text-on-surface-variant text-pretty">
+            Each shift has a limited number of enhanced responses. During an incoming call, the dispatcher often has only road type, speed limit, weather, light, and junction detail to work with.
+          </p>
+        </div>
+
+        <article class="p-gutter-lg rounded-md bg-surface-container-low/90 border border-outline flex flex-col gap-gutter-md">
+          <div class="flex items-center justify-between">
+            <span class="font-label text-label-md text-on-surface-variant uppercase">Enhanced response / shift</span>
+            <span class="font-label text-label-md text-signal-red uppercase tabular-nums">7 / 12 slots</span>
+          </div>
+          <div role="img" aria-label="7 of 12 enhanced response slots used" class="grid grid-cols-6 gap-gutter-sm">
+            <div class="aspect-square rounded-sm bg-primary border border-signal-red"></div>
+            <div class="aspect-square rounded-sm bg-primary border border-signal-red"></div>
+            <div class="aspect-square rounded-sm bg-primary border border-signal-red"></div>
+            <div class="aspect-square rounded-sm bg-primary border border-signal-red"></div>
+            <div class="aspect-square rounded-sm bg-primary border border-signal-red"></div>
+            <div class="aspect-square rounded-sm bg-primary border border-signal-red"></div>
+            <div class="aspect-square rounded-sm bg-primary border border-signal-red"></div>
+            <div class="aspect-square rounded-sm bg-surface-container border border-outline"></div>
+            <div class="aspect-square rounded-sm bg-surface-container border border-outline"></div>
+            <div class="aspect-square rounded-sm bg-surface-container border border-outline"></div>
+            <div class="aspect-square rounded-sm bg-surface-container border border-outline"></div>
+            <div class="aspect-square rounded-sm bg-surface-container border border-outline"></div>
+          </div>
+          <p class="font-body text-body-sm text-on-surface-variant">Rank calls consistently within each force&#39;s quota, then keep human judgement in the loop.</p>
+        </article>
+      </section>
+
+      <section id="how" class="flex flex-col gap-gutter-lg">
+        <div class="p-gutter-lg rounded-md bg-surface-container-low/90 border border-outline flex flex-col gap-gutter-xs">
+          <span class="font-label text-label-md text-on-surface-variant uppercase">How it works</span>
+          <h2 class="font-headline text-headline-lg-mobile md:text-headline-lg text-on-surface">Short input. Clear hand-off.</h2>
+        </div>
+
+        <ol class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-gutter-md items-stretch">
+          <li class="p-gutter-md rounded-md bg-surface-container-low/90 border border-outline flex flex-col gap-gutter-xs h-full">
+            <span class="font-label text-label-md text-signal-red uppercase">Step 1</span>
+            <h3 class="font-title text-title-md text-on-surface">Call comes in</h3>
+            <p class="font-body text-body-sm text-on-surface-variant">Dispatcher records AML/eCall or voice conditions.</p>
+          </li>
+          <li class="p-gutter-md rounded-md bg-surface-container-low/90 border border-outline flex flex-col gap-gutter-xs h-full">
+            <span class="font-label text-label-md text-signal-red uppercase">Step 2</span>
+            <h3 class="font-title text-title-md text-on-surface">Five conditions</h3>
+            <p class="font-body text-body-sm text-on-surface-variant">Road, speed limit, weather, light, junction.</p>
+          </li>
+          <li class="p-gutter-md rounded-md bg-surface-container-low/90 border border-outline flex flex-col gap-gutter-xs h-full">
+            <span class="font-label text-label-md text-signal-red uppercase">Step 3</span>
+            <h3 class="font-title text-title-md text-on-surface">Model scores</h3>
+            <p class="font-body text-body-sm text-on-surface-variant">Leakage-safe features available at call time only.</p>
+          </li>
+          <li class="p-gutter-md rounded-md bg-surface-container-low/90 border border-outline flex flex-col gap-gutter-xs h-full">
+            <span class="font-label text-label-md text-signal-red uppercase">Step 4</span>
+            <h3 class="font-title text-title-md text-on-surface">Flag + ask next</h3>
+            <p class="font-body text-body-sm text-on-surface-variant">Decision support with ranked follow-up prompts.</p>
+          </li>
+          <li class="p-gutter-md rounded-md bg-surface-container-low/90 border border-outline flex flex-col gap-gutter-xs h-full">
+            <span class="font-label text-label-md text-signal-red uppercase">Step 5</span>
+            <h3 class="font-title text-title-md text-on-surface">Logged + reviewed</h3>
+            <p class="font-body text-body-sm text-on-surface-variant">Supervisors measure shift Precision@K outcomes.</p>
+          </li>
+        </ol>
+      </section>
+
+      <section id="demo" class="p-gutter-lg rounded-md bg-surface-container-low/95 border border-outline flex flex-col gap-gutter-lg">
+        <div class="flex flex-col gap-gutter-xs">
+          <span class="font-label text-label-md text-on-surface-variant uppercase">Interactive demo</span>
+          <h2 class="font-headline text-headline-lg-mobile md:text-headline-lg text-on-surface">Try the 5-input intake flow.</h2>
+          <p class="font-label text-label-md text-signal-red uppercase">Demo mode · Simplified lookup; the full LightGBM model runs in the dispatch desk.</p>
+        </div>
+
+        <form id="demoForm" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-gutter-md items-end">
+          <label class="flex flex-col gap-gutter-xs">
+            <span class="font-label text-label-md text-on-surface-variant uppercase">Road type</span>
+            <select name="road" class="min-h-11 px-gutter-sm py-gutter-sm rounded bg-surface text-on-surface border border-outline font-body text-body-sm">
+              <option value="Single carriageway">Single carriageway</option>
+              <option value="Dual carriageway">Dual carriageway</option>
+              <option value="Roundabout">Roundabout</option>
+              <option value="Slip road">Slip road</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-gutter-xs">
+            <span class="font-label text-label-md text-on-surface-variant uppercase">Speed limit</span>
+            <select name="speed" class="min-h-11 px-gutter-sm py-gutter-sm rounded bg-surface text-on-surface border border-outline font-body text-body-sm">
+              <option value="30">30 mph</option>
+              <option value="40">40 mph</option>
+              <option value="60" selected>60 mph</option>
+              <option value="70">70 mph</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-gutter-xs">
+            <span class="font-label text-label-md text-on-surface-variant uppercase">Weather</span>
+            <select name="weather" class="min-h-11 px-gutter-sm py-gutter-sm rounded bg-surface text-on-surface border border-outline font-body text-body-sm">
+              <option value="Fine">Fine, no high winds</option>
+              <option value="Raining">Raining, no high winds</option>
+              <option value="Fog">Fog or mist</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-gutter-xs">
+            <span class="font-label text-label-md text-on-surface-variant uppercase">Light</span>
+            <select name="light" class="min-h-11 px-gutter-sm py-gutter-sm rounded bg-surface text-on-surface border border-outline font-body text-body-sm">
+              <option value="Daylight">Daylight</option>
+              <option value="Darkness - no lighting">Darkness - no lighting</option>
+              <option value="Darkness - lights lit">Darkness - lights lit</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-gutter-xs">
+            <span class="font-label text-label-md text-on-surface-variant uppercase">Junction</span>
+            <select name="junction" class="min-h-11 px-gutter-sm py-gutter-sm rounded bg-surface text-on-surface border border-outline font-body text-body-sm">
+              <option value="none">Not at junction</option>
+              <option value="junction">At junction</option>
+            </select>
+          </label>
+          <button type="submit" class="inline-flex items-center justify-center gap-gutter-xs min-h-11 px-gutter-md py-gutter-sm rounded bg-primary-container text-on-primary-container border border-signal-coral hover:bg-signal-red font-title text-label-lg cursor-pointer transition-colors duration-state-change">Assess call</button>
+        </form>
+
+        <div id="demoOutput" role="status" aria-live="polite" class="p-gutter-md rounded bg-surface border border-outline flex items-center justify-between gap-gutter-md flex-wrap">
+          <div class="flex items-center gap-gutter-md flex-wrap">
+            <span id="demoScore" class="font-headline text-headline-md text-signal-red tabular-nums">38%</span>
+            <span id="demoTag" class="px-gutter-sm py-gutter-xs rounded-full bg-primary-container text-on-primary-container font-label text-label-sm uppercase">High risk</span>
+            <span id="demoCopy" class="font-body text-body-sm text-on-surface-variant">Enhanced response may be appropriate.</span>
+          </div>
+          <a href="http://localhost:8501" data-desk-link data-desk-path="" class="font-label text-label-md text-signal-coral hover:underline">Open the full dispatch desk &rarr;</a>
+        </div>
+      </section>
+
+      <section id="results" class="grid grid-cols-1 lg:grid-cols-2 gap-gutter-xl items-stretch">
+        <article class="p-gutter-lg rounded-md bg-surface-container-low/90 border border-outline flex flex-col gap-gutter-md h-full">
+          <span class="font-label text-label-md text-on-surface-variant uppercase">2025 held-out evidence</span>
+          <h2 class="font-headline text-headline-md text-on-surface">Useful ranking signal. Honest limits.</h2>
+          <p class="font-body text-body-md text-on-surface-variant">
+            Tested on 101,525 calls from 2025: ROC AUC 0.627, precision in the top 2% at 55.4% (+19.0 points over the speed-limit baseline).
+          </p>
+          <dl class="grid grid-cols-3 gap-gutter-sm pt-gutter-sm border-t border-outline-variant mt-auto">
+            <div class="flex flex-col-reverse gap-gutter-xs">
+              <dt class="font-label text-label-sm text-on-surface-variant uppercase">Top 2% precision</dt>
+              <dd class="font-headline text-title-lg text-signal-red tabular-nums">55.4%</dd>
+            </div>
+            <div class="flex flex-col-reverse gap-gutter-xs">
+              <dt class="font-label text-label-sm text-on-surface-variant uppercase">ROC AUC</dt>
+              <dd class="font-headline text-title-lg text-on-surface tabular-nums">0.627</dd>
+            </div>
+            <div class="flex flex-col-reverse gap-gutter-xs">
+              <dt class="font-label text-label-sm text-on-surface-variant uppercase">Pts vs baseline</dt>
+              <dd class="font-headline text-title-lg text-status-ok tabular-nums">+19.0</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article class="p-gutter-lg rounded-md bg-surface-container-low/90 border border-outline flex flex-col gap-gutter-md h-full">
+          <span class="font-label text-label-md text-on-surface-variant uppercase">Complete app flow</span>
+          <h2 class="font-headline text-headline-md text-on-surface">Explore the live dispatch workspace</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-gutter-sm">
+            <a href="http://localhost:8501" data-desk-link data-desk-path="" class="p-gutter-md rounded bg-surface border border-outline hover:border-signal-red transition-colors duration-state-change flex flex-col gap-gutter-xs">
+              <span class="material-symbols-outlined text-title-lg text-signal-red" aria-hidden="true">call</span>
+              <span class="font-title text-title-md text-on-surface">Dispatch desk</span>
+              <span class="font-body text-body-sm text-on-surface-variant">AML parse &amp; triage</span>
+            </a>
+            <a href="http://localhost:8501/control-room" data-desk-link data-desk-path="/control-room" class="p-gutter-md rounded bg-surface border border-outline hover:border-signal-red transition-colors duration-state-change flex flex-col gap-gutter-xs">
+              <span class="material-symbols-outlined text-title-lg text-signal-red" aria-hidden="true">radar</span>
+              <span class="font-title text-title-md text-on-surface">Control room</span>
+              <span class="font-body text-body-sm text-on-surface-variant">3D map &amp; replay</span>
+            </a>
+            <a href="http://localhost:8501/shift-review" data-desk-link data-desk-path="/shift-review" class="p-gutter-md rounded bg-surface border border-outline hover:border-signal-red transition-colors duration-state-change flex flex-col gap-gutter-xs">
+              <span class="material-symbols-outlined text-title-lg text-signal-red" aria-hidden="true">fact_check</span>
+              <span class="font-title text-title-md text-on-surface">Shift review</span>
+              <span class="font-body text-body-sm text-on-surface-variant">P@K &amp; model health</span>
+            </a>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="mx-auto w-full max-w-6xl px-gutter-md py-gutter-xl border-t border-outline flex flex-col md:flex-row items-start md:items-center justify-between gap-gutter-md">
+      <div class="flex flex-col gap-gutter-xs">
+        <span class="font-label text-label-md text-on-surface uppercase">CALL / TRIAGE · Deepak Gangwar</span>
+        <span class="font-body text-body-sm text-on-surface-variant">Open Government Licence v3.0 · UK Department for Transport STATS19</span>
+      </div>
+      <span class="font-body text-body-sm text-on-surface">Decision support only; not for live emergency use.</span>
+    </footer>
   </div>
 
-  <header class="nav">
-    <a class="brand" href="#top" aria-label="Call Severity Triage home">
-      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3Zm0 5.2 1 6.3h-2l1-6.3Zm0 9.6a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4Z"/></svg></span>
-      <span>Call Severity Triage</span>
-    </a>
-    <nav aria-label="Sections">
-      <a href="#tour">Product</a>
-      <a href="#evidence">Evidence</a>
-      <a href="#start">Get started</a>
-    </nav>
-    <a class="btn btn-sm" data-desk-link href="http://localhost:8501">Open desk</a>
-  </header>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    (() => {
+      // Desk URL: ?desk=... overrides the <meta name="desk-url"> default.
+      const deskBase = (new URLSearchParams(location.search).get('desk')
+        || document.querySelector('meta[name="desk-url"]')?.content || '').replace(/\/$/, '');
+      if (deskBase) {
+        document.querySelectorAll('[data-desk-link]').forEach((a) => {
+          a.href = deskBase + (a.dataset.deskPath || '');
+        });
+      }
 
-  <main id="top">
-    <!-- HERO -->
-    <section class="hero" aria-labelledby="hero-title">
-      <div class="emblem" data-depth="-0.25" aria-hidden="true">
-        <span class="wave w1"></span><span class="wave w2"></span><span class="wave w3"></span>
-        <span class="reticle"><i></i><b>!</b></span>
-      </div>
-      <div class="hero-copy" data-depth="-0.12">
-        <p class="chips reveal"><span>STATS19 · 2021–2023</span><span class="chip-red">Model assisted</span></p>
-        <h1 id="hero-title" class="reveal">Call Severity Triage</h1>
-        <p class="lede reveal">Dispatcher decision-support for traffic incident response. Every incoming call is ranked by the risk of a serious or fatal outcome, in under two seconds.</p>
-        <div class="ctas reveal">
-          <a class="btn" data-desk-link href="http://localhost:8501">Open the dispatch desk</a>
-          <a class="btn btn-ghost" href="#tour">See how it works</a>
-        </div>
-      </div>
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const canvas = document.getElementById('bg3d');
+      let currentMode = 'map';
 
-      <div class="stage" id="hero-stage">
-        <div class="window float" id="hero-window">
-          <div class="chrome" aria-hidden="true"><i></i><i></i><i></i><span>callsev.triage / dispatch</span></div>
-          <div class="app">
-            <div class="app-nav" aria-hidden="true"><b>Dispatch desk</b><span>Pulse</span><span>Control room</span><span>Capacity planner</span><span>Shift review</span><span>Model health</span></div>
-            <div class="screen-dispatch">
-              <div class="card">
-                <p class="eyebrow">New call assessment</p>
-                <h3>Call conditions</h3>
-                <div class="field"><label>Road type</label><span>Single carriageway</span></div>
-                <div class="field"><label>Speed limit</label><span>60 mph</span></div>
-                <div class="field"><label>Light conditions</label><span>Darkness, no lighting</span></div>
-                <div class="field"><label>Vehicles involved</label><span>1</span></div>
-                <div class="fake-btn">Assess call</div>
-              </div>
-              <div class="card verdict">
-                <p class="eyebrow">Triage assessment</p>
-                <div class="gauge" style="--v:.78"><span>78<small>%</small></span></div>
-                <p class="flag">High risk</p>
-                <p class="muted">Rank 4 of 212 calls this shift</p>
-                <div class="bars"><i style="--w:82%"></i><i style="--w:64%"></i><i style="--w:41%"></i></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="satellite sat-a float-slow" data-depth="0.5" aria-hidden="true"><p class="eyebrow">Live incident</p><b>39</b><span>calls in queue</span></div>
-        <div class="satellite sat-b float-slower" data-depth="0.8" aria-hidden="true"><p class="eyebrow">Escalate now</p><b class="red">7</b><span>above threshold</span></div>
-      </div>
-      <a class="scroll-cue" href="#tour"><span class="sr-only">Scroll to product tour</span><i aria-hidden="true"></i></a>
-    </section>
+      const buttons = document.querySelectorAll('.scene-btn');
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          currentMode = btn.dataset.sceneMode;
+          buttons.forEach((b) => {
+            const active = b === btn;
+            b.setAttribute('aria-pressed', String(active));
+            b.classList.toggle('bg-primary-container', active);
+            b.classList.toggle('text-on-primary-container', active);
+            b.classList.toggle('bg-surface-container', !active);
+            b.classList.toggle('text-on-surface-variant', !active);
+          });
+        });
+      });
 
-    <!-- PINNED 3D TOUR -->
-    <section class="tour" id="tour" aria-labelledby="tour-title">
-      <div class="tour-sticky">
-        <div class="tour-copy">
-          <p class="eyebrow">One shift, six views</p>
-          <h2 id="tour-title" class="sr-only">Product tour</h2>
-          <ol class="steps" role="list">
-            <li data-step="0"><h3>Dispatch desk</h3><p>Enter five call conditions. Get a calibrated risk score, a rank against the shift, and the next question worth asking.</p></li>
-            <li data-step="1"><h3>Pulse</h3><p>Exposure-adjusted hotspots show where serious collisions cluster relative to traffic, not just where roads are busy.</p></li>
-            <li data-step="2"><h3>Control room</h3><p>A live queue sorted by risk, with AML and eCall messages parsed straight into the form.</p></li>
-            <li data-step="3"><h3>Capacity planner</h3><p>A digital twin replays real demand to compare risk-ranked dispatch with first-come-first-served.</p></li>
-            <li data-step="4"><h3>Shift review</h3><p>Precision at K for every shift, plus a handover brief written for the incoming supervisor.</p></li>
-          </ol>
-          <div class="progress" aria-hidden="true"><i id="tour-bar"></i></div>
-        </div>
+      // Simplified demo lookup; not the trained model.
+      const demoForm = document.getElementById('demoForm');
+      const demoScore = document.getElementById('demoScore');
+      const demoTag = document.getElementById('demoTag');
+      const demoCopy = document.getElementById('demoCopy');
+      demoForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const speed = Number(demoForm.speed.value);
+        const dark = demoForm.light.value.startsWith('Darkness');
+        const rain = demoForm.weather.value === 'Raining';
+        const fog = demoForm.weather.value === 'Fog';
+        const junction = demoForm.junction.value === 'junction';
+        const score = Math.min(63, Math.round(10 + speed * 0.35 + (dark ? 13 : 0) + (rain ? 5 : 0) + (fog ? 7 : 0) - (junction ? 3 : 0)));
+        const high = score >= 38;
+        demoScore.textContent = score + '%';
+        demoScore.className = 'font-headline text-headline-md tabular-nums ' + (high ? 'text-signal-red' : 'text-status-ok');
+        demoTag.textContent = high ? 'High risk' : 'Low risk';
+        demoTag.className = 'px-gutter-sm py-gutter-xs rounded-full font-label text-label-sm uppercase ' + (high ? 'bg-primary-container text-on-primary-container' : 'bg-status-ok text-on-status-ok');
+        demoCopy.textContent = high ? 'Enhanced response may be appropriate.' : 'Standard dispatch protocol remains appropriate.';
+      });
 
-        <div class="tour-stage" aria-hidden="true">
-          <div class="window tour-window" id="tour-window">
-            <div class="chrome"><i></i><i></i><i></i><span id="tour-url">callsev.triage / dispatch</span></div>
-            <div class="app">
-              <div class="app-nav" id="tour-nav"><span class="on">Dispatch desk</span><span>Pulse</span><span>Control room</span><span>Capacity planner</span><span>Shift review</span></div>
-              <div class="screens">
-                <!-- 0 dispatch -->
-                <div class="screen is-active" data-screen="0">
-                  <div class="screen-dispatch">
-                    <div class="card">
-                      <p class="eyebrow">Call conditions</p>
-                      <div class="field"><label>Road type</label><span>Dual carriageway</span></div>
-                      <div class="field"><label>Weather</label><span>Raining, high winds</span></div>
-                      <div class="field"><label>Junction</label><span>Roundabout</span></div>
-                      <div class="fake-btn">Assess call</div>
-                    </div>
-                    <div class="card verdict">
-                      <div class="gauge" style="--v:.62"><span>62<small>%</small></span></div>
-                      <p class="flag">High risk</p>
-                      <p class="muted">Ask next: pedestrian involved?</p>
-                    </div>
-                  </div>
-                </div>
-                <!-- 1 pulse -->
-                <div class="screen" data-screen="1">
-                  <div class="map">
-                    <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>
-                    <span class="hot h1"></span><span class="hot h2"></span><span class="hot h3"></span><span class="hot h4"></span>
-                    <div class="columns"><i style="--h:40%"></i><i style="--h:68%"></i><i style="--h:92%"></i><i style="--h:55%"></i><i style="--h:30%"></i></div>
-                    <div class="map-tag"><p class="eyebrow">Regional risk density</p><b>29.3</b></div>
-                  </div>
-                </div>
-                <!-- 2 control room -->
-                <div class="screen" data-screen="2">
-                  <div class="queue">
-                    <div class="row hd"><span>Call</span><span>Source</span><span>Risk</span></div>
-                    <div class="row"><span>#4821</span><span>eCall</span><span class="pill hi">81%</span></div>
-                    <div class="row"><span>#4818</span><span>AML</span><span class="pill hi">74%</span></div>
-                    <div class="row"><span>#4823</span><span>999 voice</span><span class="pill md">46%</span></div>
-                    <div class="row"><span>#4819</span><span>AML</span><span class="pill lo">18%</span></div>
-                    <div class="row"><span>#4824</span><span>999 voice</span><span class="pill lo">9%</span></div>
-                  </div>
-                </div>
-                <!-- 3 capacity -->
-                <div class="screen" data-screen="3">
-                  <div class="chart card">
-                    <p class="eyebrow">Serious outcomes reached in time</p>
-                    <svg viewBox="0 0 400 160" preserveAspectRatio="none">
-                      <defs><linearGradient id="fillr" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#f04452" stop-opacity=".45"/><stop offset="1" stop-color="#f04452" stop-opacity="0"/></linearGradient></defs>
-                      <path d="M0 130 C60 120 90 40 150 38 S240 100 280 90 360 30 400 28 V160 H0Z" fill="url(#fillr)"/>
-                      <path class="draw" d="M0 130 C60 120 90 40 150 38 S240 100 280 90 360 30 400 28" fill="none" stroke="#f04452" stroke-width="3"/>
-                      <path class="draw d2" d="M0 140 C70 132 100 80 150 76 S250 118 290 112 370 70 400 66" fill="none" stroke="#9aa6b5" stroke-width="2" stroke-dasharray="5 6"/>
-                    </svg>
-                    <div class="legend"><span class="lg-red">Risk-ranked</span><span>First come, first served</span></div>
-                  </div>
-                </div>
-                <!-- 4 shift review -->
-                <div class="screen" data-screen="4">
-                  <div class="tiles">
-                    <div class="card tile"><p class="eyebrow">Precision@K</p><b>0.41</b><span>vs 0.18 baseline</span></div>
-                    <div class="card tile"><p class="eyebrow">Calls assessed</p><b>212</b><span>this shift</span></div>
-                    <div class="card tile wide"><p class="eyebrow">Handover brief</p><p class="brief">Two hotspots stayed active after 22:00. Escalation threshold held; no fallback estimates issued.</p></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
+      function init2DFallback() {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        let t = 0;
+        function resize() {
+          canvas.width = window.innerWidth;
+          canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        function frame() {
+          t += reducedMotion ? 0 : 0.02;
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.strokeStyle = 'rgba(39, 49, 62, 0.55)';
+          ctx.lineWidth = 1;
+          for (let x = 0; x < canvas.width; x += 64) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+          }
+          for (let y = 0; y < canvas.height; y += 64) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+          }
+          const cx = canvas.width * 0.68;
+          const cy = canvas.height * 0.42;
+          for (let i = 0; i < 4; i++) {
+            const r = ((t * 45 + i * 55) % 220);
+            ctx.strokeStyle = `rgba(240, 68, 82, ${1 - r / 220})`;
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+          }
+          requestAnimationFrame(frame);
+        }
+        frame();
+      }
 
-    <!-- EVIDENCE -->
-    <section class="evidence" id="evidence" aria-labelledby="ev-title">
-      <p class="eyebrow reveal">Built to be checked</p>
-      <h2 id="ev-title" class="reveal">Claims you can rerun from the repo.</h2>
-      <div class="ev-grid">
-        <article class="ev reveal" data-tilt><b>&lt; 2 s</b><p>From form submit to risk flag, measured in the test suite with call logging included.</p></article>
-        <article class="ev reveal" data-tilt><b>25 / 27</b><p>Digital-twin settings where risk-ranked dispatch beat first-come-first-served. Worse in none.</p></article>
-        <article class="ev reveal" data-tilt><b>66</b><p>Automated tests, including property tests for monotone, bounded and calibrated scores.</p></article>
-        <article class="ev reveal" data-tilt><b>104,258</b><p>STATS19 collisions in the 2023 training year alone, with leak-free cross-validation.</p></article>
-      </div>
-    </section>
+      if (typeof THREE === 'undefined') {
+        init2DFallback();
+        return;
+      }
 
-    <!-- CTA -->
-    <section class="final" id="start" aria-labelledby="cta-title">
-      <div class="final-card reveal" data-tilt>
-        <h2 id="cta-title">Put the riskiest call first.</h2>
-        <p>Open the desk, enter a call and watch it take its place in the queue.</p>
-        <a class="btn" data-desk-link href="http://localhost:8501">Open the dispatch desk</a>
-      </div>
-    </section>
-  </main>
+      try {
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
 
-  <footer class="foot">
-    <span>Call Severity Triage · GLA University B.Tech project</span>
-    <span>Decision support only. The dispatcher makes the call.</span>
-  </footer>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 200);
+        camera.position.set(0, 7, 15);
+        camera.lookAt(0, 0, 0);
 
-  <script src="main.js" defer></script>
+        // Scene 1: dispatch map with call pulses
+        const mapGroup = new THREE.Group();
+        mapGroup.add(new THREE.GridHelper(28, 28, 0x27313e, 0x18212d));
+        const hubs = [[-2, 3], [1.5, 1.5], [-0.5, -1.5], [2.5, -2.5], [-3, -0.5]];
+        const pulses = [];
+        hubs.forEach(([hx, hz], idx) => {
+          const dot = new THREE.Mesh(
+            new THREE.SphereGeometry(0.18, 12, 12),
+            new THREE.MeshBasicMaterial({ color: idx % 2 === 0 ? 0xf04452 : 0x32c98b })
+          );
+          dot.position.set(hx, 0.15, hz);
+          mapGroup.add(dot);
+          const ring = new THREE.Mesh(
+            new THREE.RingGeometry(0.3, 0.36, 32),
+            new THREE.MeshBasicMaterial({ color: 0xf04452, side: THREE.DoubleSide, transparent: true, opacity: 0.7 })
+          );
+          ring.rotation.x = -Math.PI / 2;
+          ring.position.set(hx, 0.05, hz);
+          ring.userData = { phase: idx * 0.8 };
+          mapGroup.add(ring);
+          pulses.push(ring);
+        });
+        scene.add(mapGroup);
+
+        // Scene 2: five-input scoring pipeline
+        const pipeGroup = new THREE.Group();
+        const core = new THREE.Mesh(
+          new THREE.OctahedronGeometry(1.6, 0),
+          new THREE.MeshBasicMaterial({ color: 0xf04452, wireframe: true })
+        );
+        pipeGroup.add(core);
+        for (let i = 0; i < 5; i++) {
+          const node = new THREE.Mesh(
+            new THREE.BoxGeometry(0.45, 0.45, 0.45),
+            new THREE.MeshBasicMaterial({ color: 0x32c98b, wireframe: true })
+          );
+          node.position.set(-5, (i - 2) * 1.1, 0);
+          pipeGroup.add(node);
+        }
+        pipeGroup.visible = false;
+        scene.add(pipeGroup);
+
+        // Scene 3: speed-limit risk terrain
+        const terrainGroup = new THREE.Group();
+        const planeGeo = new THREE.PlaneGeometry(22, 22, 24, 24);
+        planeGeo.rotateX(-Math.PI / 2);
+        const pos = planeGeo.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+          const x = pos.getX(i);
+          const z = pos.getZ(i);
+          const peak = Math.exp(-((x - 1) * (x - 1) + z * z) / 14) * 3.2;
+          pos.setY(i, peak + Math.sin(x * 0.6) * 0.4);
+        }
+        terrainGroup.add(new THREE.Mesh(
+          planeGeo,
+          new THREE.MeshBasicMaterial({ color: 0xf04452, wireframe: true, transparent: true, opacity: 0.45 })
+        ));
+        terrainGroup.visible = false;
+        scene.add(terrainGroup);
+
+        window.addEventListener('resize', () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        let mouseX = 0, mouseY = 0, scrollRatio = 0;
+        const parallaxCard = document.getElementById('parallaxCard');
+        if (!reducedMotion) {
+          window.addEventListener('mousemove', (e) => {
+            mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+            mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+            if (parallaxCard) {
+              parallaxCard.style.transform = `rotateY(${mouseX * 7}deg) rotateX(${-mouseY * 6}deg)`;
+            }
+          }, { passive: true });
+        }
+        window.addEventListener('scroll', () => {
+          const maxScroll = Math.max(1, document.body.scrollHeight - window.innerHeight);
+          scrollRatio = window.scrollY / maxScroll;
+        }, { passive: true });
+
+        // Hero reticle and circuit blocks
+        const heroCanvas = document.getElementById('heroEmblem3d');
+        if (heroCanvas) {
+          try {
+            const hw = heroCanvas.clientWidth || 1100;
+            const hh = heroCanvas.clientHeight || 320;
+            const hr = new THREE.WebGLRenderer({ canvas: heroCanvas, alpha: true, antialias: true });
+            hr.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            hr.setSize(hw, hh, false);
+            const hs = new THREE.Scene();
+            const hc = new THREE.PerspectiveCamera(42, hw / hh, 0.1, 100);
+            hc.position.set(0, 3.8, 7.2);
+            hc.lookAt(0, 0, 0);
+
+            const reticleGroup = new THREE.Group();
+            [1.3, 2.1, 2.9].forEach((rad, i) => {
+              const torus = new THREE.Mesh(
+                new THREE.TorusGeometry(rad, 0.045, 12, 64),
+                new THREE.MeshBasicMaterial({ color: i === 0 ? 0xf04452 : 0x3a4757 })
+              );
+              torus.rotation.x = Math.PI / 2;
+              reticleGroup.add(torus);
+            });
+            for (let i = 0; i < 18; i++) {
+              const b = new THREE.Mesh(
+                new THREE.BoxGeometry(0.65, 0.25 + (i % 4) * 0.22, 0.65),
+                new THREE.MeshBasicMaterial({ color: i % 5 === 0 ? 0xf04452 : 0x18212d, wireframe: i % 3 === 0 })
+              );
+              b.position.set((i % 6 - 2.5) * 2.1, -0.3, (Math.floor(i / 6) - 1) * 2.0);
+              reticleGroup.add(b);
+            }
+            hs.add(reticleGroup);
+
+            window.addEventListener('resize', () => {
+              const w = heroCanvas.clientWidth || hw;
+              const h = heroCanvas.clientHeight || hh;
+              hc.aspect = w / h;
+              hc.updateProjectionMatrix();
+              hr.setSize(w, h, false);
+            });
+
+            let ht = 0;
+            const animHero = () => {
+              requestAnimationFrame(animHero);
+              if (!reducedMotion) ht += 0.015;
+              reticleGroup.rotation.y = ht * 0.25 + mouseX * 0.22;
+              reticleGroup.rotation.x = mouseY * 0.14;
+              hc.position.z = 7.2 + scrollRatio * 2.5;
+              hr.render(hs, hc);
+            };
+            animHero();
+          } catch (err) { /* hero emblem is decorative */ }
+        }
+
+        let time = 0;
+        const animate = () => {
+          requestAnimationFrame(animate);
+          if (!reducedMotion) time += 0.015;
+          camera.position.x += (mouseX * 1.8 - camera.position.x) * 0.05;
+          camera.position.y += ((7 - mouseY * 1.2 - scrollRatio * 2.5) - camera.position.y) * 0.05;
+          camera.lookAt(0, 0, 0);
+
+          mapGroup.visible = currentMode === 'map';
+          pipeGroup.visible = currentMode === 'pipeline';
+          terrainGroup.visible = currentMode === 'terrain';
+
+          if (currentMode === 'map') {
+            mapGroup.rotation.y = time * 0.12;
+            pulses.forEach((r) => {
+              const s = 1 + ((time * 1.4 + r.userData.phase) % 3.5);
+              r.scale.set(s, s, 1);
+              r.material.opacity = Math.max(0, 0.85 - s / 4.5);
+            });
+          } else if (currentMode === 'pipeline') {
+            core.rotation.y = time * 0.6;
+            core.rotation.x = time * 0.3;
+          } else {
+            terrainGroup.rotation.y = time * 0.18;
+          }
+          renderer.render(scene, camera);
+        };
+        animate();
+      } catch (err) {
+        init2DFallback();
+      }
+    })();
+  </script>
 </body>
 </html>

@@ -120,6 +120,7 @@ def control_room() -> None:
         "Replay a shift of held-out 2025 collisions and compare risk-ranked dispatch with first come, first served, using the same scarce enhanced-response units.",
         "Operations"
     ), unsafe_allow_html=True)
+    theme.scene_3d("network", 200, "3D dispatch network · illustrative")
     if not (REPLAY_PATH.exists() and HEX_PATH.exists()):
         _missing("The replay data")
         return
@@ -228,6 +229,7 @@ def pulse() -> None:
         "Where serious and fatal collisions are expected, hour by hour across a typical week. Press play to watch the week move, "
         "or drag the slider to a specific hour."
     ), unsafe_allow_html=True)
+    theme.scene_3d("radar", 220, "3D hotspot radar · illustrative")
     if not (PULSE_CELLS_PATH.exists() and PULSE_PROFILES_PATH.exists()):
         st.info("The pulse data is not built yet. Run step8_pulse.py first.")
         return
