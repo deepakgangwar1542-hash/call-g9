@@ -382,9 +382,50 @@ def model_health_page() -> None:
     views.model_health(db.all_calls())
 
 
+LANDING_HTML = ROOT / "docs" / "index.html"
+LANDING_CHROME_CSS = """
+<style>
+[data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"], .safety-note { display: none !important; }
+[data-testid="stHeader"] { position: fixed !important; left: -3000px !important; width: 1600px !important; }
+.block-container { padding: 0 !important; max-width: 100% !important; }
+[data-testid="stMain"] iframe { height: 100vh !important; width: 100% !important; border: 0; display: block; }
+</style>
+"""
+
+LANDING_ROUTER_JS = """
+<script>
+document.addEventListener('click', (event) => {
+  const link = event.target.closest('a[data-route]');
+  if (!link || event.metaKey || event.ctrlKey || event.shiftKey) return;
+  event.preventDefault();
+  const route = link.dataset.route;
+  const nav = [...window.parent.document.querySelectorAll('a[data-testid="stTopNavLink"]')]
+    .find((a) => new URL(a.href).pathname === route);
+  if (nav) nav.click(); else window.open(route, '_blank');
+});
+</script>
+"""
+
+
+def landing() -> None:
+    """Render the 3D landing overview as the app's front door, routing its links to the desk pages."""
+    import re
+    import streamlit.components.v1 as components
+
+    html = LANDING_HTML.read_text(encoding="utf-8")
+    html = html.replace('<meta name="desk-url" content="http://localhost:8501">', '<meta name="desk-url" content="">')
+    html = re.sub(r'href="http://localhost:8501([^"]*)"',
+                  lambda m: f'href="{m.group(1) or "/dispatch"}" data-route="{m.group(1) or "/dispatch"}"', html)
+    html = html.replace("</body>", LANDING_ROUTER_JS + "</body>")
+    st.markdown(LANDING_CHROME_CSS, unsafe_allow_html=True)
+    components.html(html, height=900, scrolling=True)
+
+
+HOME = st.Page(landing, title="Home", icon=":material/home:", default=True)
+
 PAGES = {
     "Operations": [
-        st.Page(dispatch_desk, title="Dispatch desk", icon=":material/call:", url_path="dispatch", default=True),
+        st.Page(dispatch_desk, title="Dispatch desk", icon=":material/call:", url_path="dispatch"),
         st.Page(views.pulse, title="Pulse", icon=":material/monitor_heart:", url_path="pulse"),
         st.Page(views.control_room, title="Control room", icon=":material/radar:", url_path="control-room"),
     ],
@@ -397,7 +438,11 @@ PAGES = {
     ],
 }
 
-page = st.navigation([p for group in PAGES.values() for p in group], position="top")
+page = st.navigation([HOME] + [p for group in PAGES.values() for p in group], position="top")
+
+if page is HOME:
+    page.run()
+    st.stop()
 
 with st.sidebar:
     st.markdown(theme.brand(), unsafe_allow_html=True)
