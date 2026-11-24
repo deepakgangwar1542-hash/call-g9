@@ -73,10 +73,14 @@ def section_title(text: str, icon: str = "list") -> str:
 
 def verdict_card(pred: dict, ms: float, cid: str) -> str:
     estimate = bool(pred.get("is_estimate"))
+    unavailable = pred.get("assessment_state") == "unavailable"
     high = pred["risk_flag"] == "High risk" and not estimate
     css_class = "verdict-estimate" if estimate else "verdict-high" if high else "verdict-low"
-    label = "UNSCORED" if estimate else "HIGH RISK" if high else "LOW RISK"
-    if estimate:
+    label = "ASSESSMENT UNAVAILABLE" if unavailable else "UNSCORED" if estimate else "HIGH RISK" if high else "LOW RISK"
+    if unavailable:
+        code = escape(str(pred.get("reason_code") or "UNKNOWN"))
+        recommendation = f"{escape(pred.get('message') or '')} (reason: {code})"
+    elif estimate:
         recommendation = "The model is unavailable. This baseline estimate is not a scored risk classification; follow dispatcher judgement and established protocols."
     elif high:
         recommendation = "Enhanced response recommended. Apply dispatcher judgement and local protocol."
@@ -91,9 +95,10 @@ def verdict_card(pred: dict, ms: float, cid: str) -> str:
             f'<div class="meter-val">{pct:.1f}% confidence</div></div>'
         )
     else:
+        chip = "No risk level produced" if unavailable else "Fallback estimate · model prediction unavailable"
         meter = (
             '<div style="margin:.35rem 0 .85rem"><span class="estimate-chip">'
-            f'{_svg("alert")} Fallback estimate · model prediction unavailable</span></div>'
+            f'{_svg("alert")} {chip}</span></div>'
         )
     return f"""
     <section class="verdict {css_class}" aria-label="Triage result: {label}">

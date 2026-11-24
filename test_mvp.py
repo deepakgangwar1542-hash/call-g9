@@ -23,21 +23,29 @@ def test_invalid_speed_rejected():                # FR-1.3
     try: validate({**OK, "speed_limit": 45}); assert False
     except ValidationError as e: assert "45" in str(e)
 
-def test_fallback_when_model_missing():           # AC-3, FR-2.4
-    predict._cache.clear(); real, real2 = common.MODEL_PATH, common.V2_MODEL_PATH
-    predict.MODEL_PATH = real.with_name("nope.joblib")
-    predict.V2_MODEL_PATH = real2.with_name("nope.joblib")
-    r = predict_call(OK); predict.MODEL_PATH, predict.V2_MODEL_PATH = real, real2; predict._cache.clear()
-    assert r["is_estimate"] and r["risk_flag"] == "Low risk"
+def _break(model_id, artifact, path="models/does_not_exist.joblib"):
+    def mutate(registry):
+        for entry in registry["models"]:
+            if entry["id"] == model_id:
+                entry["artifacts"][artifact]["path"] = path
+    return mutate
 
-def test_v2_is_primary_and_v1_is_fallback():
-    predict._cache.clear()
+
+def test_missing_model_is_unavailable_not_low_risk(registry_variant):   # AC-3, FR-2.4 (replaces the Level-0 'Low risk' fallback)
+    registry_variant(_break("v2", "model"))
+    r = predict_call(OK)
+    assert r["assessment_state"] == "unavailable" and r["risk_flag"] == "Assessment unavailable"
+    assert r["risk_score"] is None and r["confidence"] is None and r["reason_code"] == "MODEL_ARTIFACT_MISSING"
+
+
+def test_v2_is_primary_and_v1_is_only_an_opt_in_fallback(registry_variant, monkeypatch):
     assert predict_call(OK)["model_tier"] == "T4_plus_force"
-    real2 = common.V2_MODEL_PATH
-    predict._cache.clear(); predict.V2_MODEL_PATH = real2.with_name("nope.joblib")
-    try: r = predict_call(OK)
-    finally: predict.V2_MODEL_PATH = real2; predict._cache.clear()
-    assert r["model_tier"] == "v1_base5" and not r["is_estimate"]
+    registry_variant(_break("v2", "model"))
+    assert predict_call(OK)["assessment_state"] == "unavailable"          # v1 is NOT used silently
+    monkeypatch.setenv("TRIAGE_ALLOW_V1_FALLBACK", "true")
+    r = predict_call(OK)
+    assert r["model_tier"] == "v1_base5" and r["assessment_state"] == "degraded" and r["reason_code"] == "V2_UNAVAILABLE_V1_USED"
+
 
 def test_v2_row_keeps_every_input_as_a_real_category():
     bundle, _ = predict._load_v2()
@@ -158,13 +166,9 @@ def test_reasons_include_optional_field_when_given():
     assert {"first_road_class", "urban_or_rural_area", "police_force"} <= fields
 
 
-def test_no_reasons_when_v2_missing():
-    predict._cache.clear(); real = common.V2_MODEL_PATH
-    predict.V2_MODEL_PATH = real.with_name("nope.joblib")
-    try:
-        assert predict.explain(validate(OK)) == []
-    finally:
-        predict.V2_MODEL_PATH = real; predict._cache.clear()
+def test_no_reasons_when_v2_missing(registry_variant):
+    registry_variant(_break("v2", "model"))
+    assert predict.explain(validate(OK)) == []
 
 
 def test_reasons_card_renders_and_escapes():

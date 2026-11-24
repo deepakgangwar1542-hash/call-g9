@@ -40,7 +40,9 @@ def test_score_is_a_probability_and_flag_matches_threshold(call):
 @FAST
 @given(full_call)
 def test_scoring_is_deterministic(call):
-    assert predict.predict_call(call) == predict.predict_call(call)
+    volatile = {"latency_ms", "correlation_id"}   # per-request metadata, not part of the score
+    first, second = predict.predict_call(call), predict.predict_call(call)
+    assert {k: v for k, v in first.items() if k not in volatile} == {k: v for k, v in second.items() if k not in volatile}
 
 
 @needs_model
