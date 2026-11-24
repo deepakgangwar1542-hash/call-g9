@@ -11,6 +11,7 @@ from messages import parse_message
 from predict import ValidationError, predict_call, validate, what_if
 import context
 import db
+import handover
 import insights
 import report
 import theme
@@ -343,6 +344,12 @@ with review_tab:
     if calls.empty:
         st.info("The shift log is empty. It will be available for export after a call is assessed.")
     else:
+        brief = handover.write_brief(calls, result)
+        st.markdown(theme.section_title("Handover brief", "list"), unsafe_allow_html=True)
+        st.write(brief["text"])
+        st.caption("Written from the shift numbers only; every figure is checked against them."
+                   if brief["source"] == "model" else
+                   "Built directly from the shift numbers. A model-written version is used only when every figure in it matches them.")
         csv_col, pdf_col, _ = st.columns([1, 1, 2])
         csv_col.download_button("Download shift log (CSV)", calls.to_csv(index=False), "shift_log.csv", mime="text/csv")
         pdf_col.download_button("Download shift report (PDF)", report.build_pdf(calls, result), "shift_report.pdf", mime="application/pdf")

@@ -1,0 +1,239 @@
+{
+  "speed_sweep": [
+    {
+      "road_type": "Single carriageway",
+      "light": "Daylight",
+      "area": "Urban",
+      "scores": [
+        0.1522,
+        0.1482,
+        0.173,
+        0.189,
+        0.2051,
+        0.1505
+      ],
+      "non_decreasing": false
+    },
+    {
+      "road_type": "Single carriageway",
+      "light": "Daylight",
+      "area": "Rural",
+      "scores": [
+        0.1541,
+        0.1485,
+        0.1719,
+        0.1905,
+        0.2089,
+        0.153
+      ],
+      "non_decreasing": false
+    },
+    {
+      "road_type": "Single carriageway",
+      "light": "Darkness - lights lit",
+      "area": "Urban",
+      "scores": [
+        0.2001,
+        0.1967,
+        0.2126,
+        0.2213,
+        0.2141,
+        0.197
+      ],
+      "non_decreasing": false
+    },
+    {
+      "road_type": "Single carriageway",
+      "light": "Darkness - lights lit",
+      "area": "Rural",
+      "scores": [
+        0.199,
+        0.1935,
+        0.2076,
+        0.2191,
+        0.2142,
+        0.1965
+      ],
+      "non_decreasing": false
+    },
+    {
+      "road_type": "Dual carriageway",
+      "light": "Daylight",
+      "area": "Urban",
+      "scores": [
+        0.1653,
+        0.157,
+        0.1729,
+        0.1764,
+        0.1986,
+        0.1625
+      ],
+      "non_decreasing": false
+    },
+    {
+      "road_type": "Dual carriageway",
+      "light": "Daylight",
+      "area": "Rural",
+      "scores": [
+        0.163,
+        0.1523,
+        0.1664,
+        0.1732,
+        0.1963,
+        0.1609
+      ],
+      "non_decreasing": false
+    },
+    {
+      "road_type": "Dual carriageway",
+      "light": "Darkness - lights lit",
+      "area": "Urban",
+      "scores": [
+        0.2125,
+        0.2038,
+        0.2142,
+        0.2065,
+        0.2026,
+        0.2064
+      ],
+      "non_decreasing": false
+    },
+    {
+      "road_type": "Dual carriageway",
+      "light": "Darkness - lights lit",
+      "area": "Rural",
+      "scores": [
+        0.2083,
+        0.1967,
+        0.2051,
+        0.2015,
+        0.1989,
+        0.2031
+      ],
+      "non_decreasing": false
+    },
+    {
+      "road_type": "Roundabout",
+      "light": "Daylight",
+      "area": "Urban",
+      "scores": [
+        0.1669,
+        0.1625,
+        0.1642,
+        0.1723,
+        0.1932,
+        0.1624
+      ],
+      "non_decreasing": false
+    },
+    {
+      "road_type": "Roundabout",
+      "light": "Daylight",
+      "area": "Rural",
+      "scores": [
+        0.1634,
+        0.1573,
+        0.1577,
+        0.1687,
+        0.1914,
+        0.1603
+      ],
+      "non_decreasing": false
+    },
+    {
+      "road_type": "Roundabout",
+      "light": "Darkness - lights lit",
+      "area": "Urban",
+      "scores": [
+        0.2046,
+        0.2008,
+        0.1979,
+        0.1959,
+        0.1951,
+        0.1982
+      ],
+      "non_decreasing": false
+    },
+    {
+      "road_type": "Roundabout",
+      "light": "Darkness - lights lit",
+      "area": "Rural",
+      "scores": [
+        0.2005,
+        0.1948,
+        0.1903,
+        0.1919,
+        0.1933,
+        0.1958
+      ],
+      "non_decreasing": false
+    }
+  ],
+  "fairness": {
+    "urban_or_rural_area": {
+      "groups": 2,
+      "recall_min": 0.0044,
+      "recall_max": 0.0995,
+      "recall_ratio": 0.044221105527638194,
+      "escalated_min": 0.0021,
+      "escalated_max": 0.055,
+      "lowest_recall": [
+        [
+          "Urban",
+          0.0044
+        ],
+        [
+          "Rural",
+          0.0995
+        ]
+      ],
+      "highest_recall": [
+        [
+          "Rural",
+          0.0995
+        ],
+        [
+          "Urban",
+          0.0044
+        ]
+      ]
+    },
+    "police_force": {
+      "groups": 25,
+      "recall_min": 0.0,
+      "recall_max": 0.3679,
+      "recall_ratio": 0.0,
+      "escalated_min": 0.0,
+      "escalated_max": 0.2963,
+      "lowest_recall": [
+        [
+          "Avon and Somerset",
+          0.0
+        ],
+        [
+          "Cheshire",
+          0.0
+        ],
+        [
+          "Devon and Cornwall",
+          0.0
+        ]
+      ],
+      "highest_recall": [
+        [
+          "Police Scotland",
+          0.3679
+        ],
+        [
+          "South Yorkshire",
+          0.0476
+        ],
+        [
+          "Northumbria",
+          0.0352
+        ]
+      ]
+    }
+  },
+  "model_version": "LightGBM-T4_plus_force-2021_2025-202611180414"
+}
