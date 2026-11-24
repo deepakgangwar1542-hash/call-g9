@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Model artifacts are pinned by SHA-256 in models/registry.json; never rewrite their bytes on checkout.
+models/*.joblib binary
+models/*.json -text

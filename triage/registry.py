@@ -26,6 +26,14 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def artifact_digest(data: bytes, path: str) -> str:
+    # Git's `text=auto` rewrites LF to CRLF in JSON files on Windows checkouts; hash text artifacts in LF form so
+    # the pinned digest is checkout-independent. Binary artifacts (joblib) are hashed byte-for-byte.
+    if str(path).lower().endswith(".json"):
+        data = data.replace(b"\r\n", b"\n")
+    return hashlib.sha256(data).hexdigest()
+
+
 def feature_schema_version(features: list[str]) -> str:
     return "fs-" + hashlib.sha256("|".join(features).encode()).hexdigest()[:12]
 
@@ -74,7 +82,7 @@ def load_verified_bytes(model_id: str, artifact: str, settings: Settings | None 
     if not spec or not spec.get("sha256"):
         raise IntegrityError(f"artifact {artifact!r} of {model_id} is not registered", Reason.ARTIFACT_UNREGISTERED)
     data = _read(_resolve(spec["path"]))
-    if hashlib.sha256(data).hexdigest() != spec["sha256"]:
+    if artifact_digest(data, spec["path"]) != spec["sha256"]:
         raise IntegrityError(f"checksum mismatch for {spec['path']}", Reason.ARTIFACT_CHECKSUM_MISMATCH)
     return data
 
@@ -105,7 +113,7 @@ def verify_all(settings: Settings | None = None) -> list[dict]:
         for name, spec in entry["artifacts"].items():
             path = _resolve(spec["path"])
             try:
-                actual = sha256_file(path)
+                actual = artifact_digest(path.read_bytes(), spec["path"])
                 ok, reason = actual == spec.get("sha256"), None if actual == spec.get("sha256") else Reason.ARTIFACT_CHECKSUM_MISMATCH
             except OSError:
                 ok, reason = False, Reason.MODEL_ARTIFACT_MISSING
