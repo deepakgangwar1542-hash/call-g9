@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0d12">
+  <meta name="desk-url" content="http://localhost:8501">
+  <title>Call Severity Triage — Dispatcher decision-support</title>
+  <meta name="description" content="Model-assisted severity triage for traffic incident calls. Rank incoming calls by risk, see live hotspots, plan capacity and review every shift.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="floor" aria-hidden="true">
+    <div class="floor-grid" data-depth="0.15"></div>
+    <div class="glints" data-depth="0.35"></div>
+  </div>
+
+  <header class="nav">
+    <a class="brand" href="#top" aria-label="Call Severity Triage home">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3Zm0 5.2 1 6.3h-2l1-6.3Zm0 9.6a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4Z"/></svg></span>
+      <span>Call Severity Triage</span>
+    </a>
+    <nav aria-label="Sections">
+      <a href="#tour">Product</a>
+      <a href="#evidence">Evidence</a>
+      <a href="#start">Get started</a>
+    </nav>
+    <a class="btn btn-sm" data-desk-link href="http://localhost:8501">Open desk</a>
+  </header>
+
+  <main id="top">
+    <!-- HERO -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="emblem" data-depth="-0.25" aria-hidden="true">
+        <span class="wave w1"></span><span class="wave w2"></span><span class="wave w3"></span>
+        <span class="reticle"><i></i><b>!</b></span>
+      </div>
+      <div class="hero-copy" data-depth="-0.12">
+        <p class="chips reveal"><span>STATS19 · 2021–2023</span><span class="chip-red">Model assisted</span></p>
+        <h1 id="hero-title" class="reveal">Call Severity Triage</h1>
+        <p class="lede reveal">Dispatcher decision-support for traffic incident response. Every incoming call is ranked by the risk of a serious or fatal outcome, in under two seconds.</p>
+        <div class="ctas reveal">
+          <a class="btn" data-desk-link href="http://localhost:8501">Open the dispatch desk</a>
+          <a class="btn btn-ghost" href="#tour">See how it works</a>
+        </div>
+      </div>
+
+      <div class="stage" id="hero-stage">
+        <div class="window float" id="hero-window">
+          <div class="chrome" aria-hidden="true"><i></i><i></i><i></i><span>callsev.triage / dispatch</span></div>
+          <div class="app">
+            <div class="app-nav" aria-hidden="true"><b>Dispatch desk</b><span>Pulse</span><span>Control room</span><span>Capacity planner</span><span>Shift review</span><span>Model health</span></div>
+            <div class="screen-dispatch">
+              <div class="card">
+                <p class="eyebrow">New call assessment</p>
+                <h3>Call conditions</h3>
+                <div class="field"><label>Road type</label><span>Single carriageway</span></div>
+                <div class="field"><label>Speed limit</label><span>60 mph</span></div>
+                <div class="field"><label>Light conditions</label><span>Darkness, no lighting</span></div>
+                <div class="field"><label>Vehicles involved</label><span>1</span></div>
+                <div class="fake-btn">Assess call</div>
+              </div>
+              <div class="card verdict">
+                <p class="eyebrow">Triage assessment</p>
+                <div class="gauge" style="--v:.78"><span>78<small>%</small></span></div>
+                <p class="flag">High risk</p>
+                <p class="muted">Rank 4 of 212 calls this shift</p>
+                <div class="bars"><i style="--w:82%"></i><i style="--w:64%"></i><i style="--w:41%"></i></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="satellite sat-a float-slow" data-depth="0.5" aria-hidden="true"><p class="eyebrow">Live incident</p><b>39</b><span>calls in queue</span></div>
+        <div class="satellite sat-b float-slower" data-depth="0.8" aria-hidden="true"><p class="eyebrow">Escalate now</p><b class="red">7</b><span>above threshold</span></div>
+      </div>
+      <a class="scroll-cue" href="#tour"><span class="sr-only">Scroll to product tour</span><i aria-hidden="true"></i></a>
+    </section>
+
+    <!-- PINNED 3D TOUR -->
+    <section class="tour" id="tour" aria-labelledby="tour-title">
+      <div class="tour-sticky">
+        <div class="tour-copy">
+          <p class="eyebrow">One shift, six views</p>
+          <h2 id="tour-title" class="sr-only">Product tour</h2>
+          <ol class="steps" role="list">
+            <li data-step="0"><h3>Dispatch desk</h3><p>Enter five call conditions. Get a calibrated risk score, a rank against the shift, and the next question worth asking.</p></li>
+            <li data-step="1"><h3>Pulse</h3><p>Exposure-adjusted hotspots show where serious collisions cluster relative to traffic, not just where roads are busy.</p></li>
+            <li data-step="2"><h3>Control room</h3><p>A live queue sorted by risk, with AML and eCall messages parsed straight into the form.</p></li>
+            <li data-step="3"><h3>Capacity planner</h3><p>A digital twin replays real demand to compare risk-ranked dispatch with first-come-first-served.</p></li>
+            <li data-step="4"><h3>Shift review</h3><p>Precision at K for every shift, plus a handover brief written for the incoming supervisor.</p></li>
+          </ol>
+          <div class="progress" aria-hidden="true"><i id="tour-bar"></i></div>
+        </div>
+
+        <div class="tour-stage" aria-hidden="true">
+          <div class="window tour-window" id="tour-window">
+            <div class="chrome"><i></i><i></i><i></i><span id="tour-url">callsev.triage / dispatch</span></div>
+            <div class="app">
+              <div class="app-nav" id="tour-nav"><span class="on">Dispatch desk</span><span>Pulse</span><span>Control room</span><span>Capacity planner</span><span>Shift review</span></div>
+              <div class="screens">
+                <!-- 0 dispatch -->
+                <div class="screen is-active" data-screen="0">
+                  <div class="screen-dispatch">
+                    <div class="card">
+                      <p class="eyebrow">Call conditions</p>
+                      <div class="field"><label>Road type</label><span>Dual carriageway</span></div>
+                      <div class="field"><label>Weather</label><span>Raining, high winds</span></div>
+                      <div class="field"><label>Junction</label><span>Roundabout</span></div>
+                      <div class="fake-btn">Assess call</div>
+                    </div>
+                    <div class="card verdict">
+                      <div class="gauge" style="--v:.62"><span>62<small>%</small></span></div>
+                      <p class="flag">High risk</p>
+                      <p class="muted">Ask next: pedestrian involved?</p>
+                    </div>
+                  </div>
+                </div>
+                <!-- 1 pulse -->
+                <div class="screen" data-screen="1">
+                  <div class="map">
+                    <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>
+                    <span class="hot h1"></span><span class="hot h2"></span><span class="hot h3"></span><span class="hot h4"></span>
+                    <div class="columns"><i style="--h:40%"></i><i style="--h:68%"></i><i style="--h:92%"></i><i style="--h:55%"></i><i style="--h:30%"></i></div>
+                    <div class="map-tag"><p class="eyebrow">Regional risk density</p><b>29.3</b></div>
+                  </div>
+                </div>
+                <!-- 2 control room -->
+                <div class="screen" data-screen="2">
+                  <div class="queue">
+                    <div class="row hd"><span>Call</span><span>Source</span><span>Risk</span></div>
+                    <div class="row"><span>#4821</span><span>eCall</span><span class="pill hi">81%</span></div>
+                    <div class="row"><span>#4818</span><span>AML</span><span class="pill hi">74%</span></div>
+                    <div class="row"><span>#4823</span><span>999 voice</span><span class="pill md">46%</span></div>
+                    <div class="row"><span>#4819</span><span>AML</span><span class="pill lo">18%</span></div>
+                    <div class="row"><span>#4824</span><span>999 voice</span><span class="pill lo">9%</span></div>
+                  </div>
+                </div>
+                <!-- 3 capacity -->
+                <div class="screen" data-screen="3">
+                  <div class="chart card">
+                    <p class="eyebrow">Serious outcomes reached in time</p>
+                    <svg viewBox="0 0 400 160" preserveAspectRatio="none">
+                      <defs><linearGradient id="fillr" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#f04452" stop-opacity=".45"/><stop offset="1" stop-color="#f04452" stop-opacity="0"/></linearGradient></defs>
+                      <path d="M0 130 C60 120 90 40 150 38 S240 100 280 90 360 30 400 28 V160 H0Z" fill="url(#fillr)"/>
+                      <path class="draw" d="M0 130 C60 120 90 40 150 38 S240 100 280 90 360 30 400 28" fill="none" stroke="#f04452" stroke-width="3"/>
+                      <path class="draw d2" d="M0 140 C70 132 100 80 150 76 S250 118 290 112 370 70 400 66" fill="none" stroke="#9aa6b5" stroke-width="2" stroke-dasharray="5 6"/>
+                    </svg>
+                    <div class="legend"><span class="lg-red">Risk-ranked</span><span>First come, first served</span></div>
+                  </div>
+                </div>
+                <!-- 4 shift review -->
+                <div class="screen" data-screen="4">
+                  <div class="tiles">
+                    <div class="card tile"><p class="eyebrow">Precision@K</p><b>0.41</b><span>vs 0.18 baseline</span></div>
+                    <div class="card tile"><p class="eyebrow">Calls assessed</p><b>212</b><span>this shift</span></div>
+                    <div class="card tile wide"><p class="eyebrow">Handover brief</p><p class="brief">Two hotspots stayed active after 22:00. Escalation threshold held; no fallback estimates issued.</p></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EVIDENCE -->
+    <section class="evidence" id="evidence" aria-labelledby="ev-title">
+      <p class="eyebrow reveal">Built to be checked</p>
+      <h2 id="ev-title" class="reveal">Claims you can rerun from the repo.</h2>
+      <div class="ev-grid">
+        <article class="ev reveal" data-tilt><b>&lt; 2 s</b><p>From form submit to risk flag, measured in the test suite with call logging included.</p></article>
+        <article class="ev reveal" data-tilt><b>25 / 27</b><p>Digital-twin settings where risk-ranked dispatch beat first-come-first-served. Worse in none.</p></article>
+        <article class="ev reveal" data-tilt><b>66</b><p>Automated tests, including property tests for monotone, bounded and calibrated scores.</p></article>
+        <article class="ev reveal" data-tilt><b>104,258</b><p>STATS19 collisions in the 2023 training year alone, with leak-free cross-validation.</p></article>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="final" id="start" aria-labelledby="cta-title">
+      <div class="final-card reveal" data-tilt>
+        <h2 id="cta-title">Put the riskiest call first.</h2>
+        <p>Open the desk, enter a call and watch it take its place in the queue.</p>
+        <a class="btn" data-desk-link href="http://localhost:8501">Open the dispatch desk</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>Call Severity Triage · GLA University B.Tech project</span>
+    <span>Decision support only. The dispatcher makes the call.</span>
+  </footer>
+
+  <script src="main.js" defer></script>
+</body>
+</html>
