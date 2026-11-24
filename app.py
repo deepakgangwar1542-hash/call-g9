@@ -87,6 +87,7 @@ def dispatch_desk() -> None:
     st.markdown(theme.page_intro(
         "Dispatch desk", "New call assessment. Enter the five core conditions to generate a risk flag and log the assessment. Optional detail sharpens the score."
     ), unsafe_allow_html=True)
+    theme.scene_3d("terrain", 170, "3D risk surface · illustrative")
 
     intake_col, result_col = st.columns([1.08, 0.92], gap="large")
     with intake_col:
@@ -279,6 +280,7 @@ def shift_review() -> None:
     st.markdown(theme.page_intro(
         "Shift review", "Review recorded assessments, outcomes, and enhanced-response activity.", "Planning"
     ), unsafe_allow_html=True)
+    theme.scene_3d("bars", 170, "3D dispatcher activity · illustrative")
 
     total_calls = len(calls)
     high_count = int((calls["predicted_risk"] == "High risk").sum()) if total_calls else 0
